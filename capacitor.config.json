@@ -1,0 +1,22 @@
+{
+  "appId": "com.trakin.app",
+  "appName": "Trakin Gym",
+  "webDir": "public",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert", "banner", "list"]
+    },
+    "Keyboard": {
+      "resize": "none",
+      "resizeOnFullScreen": true
+    }
+  },
+  "ios": {
+    "contentInset": "never"
+  }
+}

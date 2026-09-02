@@ -1,0 +1,38 @@
+{
+    "$schema": "https://www.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite",
+        "cap:sync": "vite build && npx cap sync && rm -rf ios/App/App/public/storage && mkdir -p ios/App/App/public/storage",
+        "cap:ios": "vite build && npx cap sync ios && rm -rf ios/App/App/public/storage && mkdir -p ios/App/App/public/storage"
+    },
+    "devDependencies": {
+        "@capacitor/cli": "^8.5.0",
+        "@tailwindcss/vite": "^4.0.0",
+        "concurrently": "^9.0.1",
+        "laravel-vite-plugin": "^3.1",
+        "tailwindcss": "^4.0.0",
+        "vite": "^8.0.0"
+    },
+    "dependencies": {
+        "@capacitor/android": "^8.5.0",
+        "@capacitor/core": "^8.5.0",
+        "@capacitor/ios": "^8.5.0",
+        "@capacitor/local-notifications": "^8.2.1",
+        "@capacitor/push-notifications": "^8.1.2",
+        "@hookform/resolvers": "^5.7.1",
+        "@inertiajs/react": "^3.6.1",
+        "@tanstack/react-table": "^8.21.3",
+        "@vitejs/plugin-react": "^6.0.5",
+        "clsx": "^2.1.1",
+        "lucide-react": "^1.28.0",
+        "react": "^19.2.8",
+        "react-dom": "^19.2.8",
+        "react-hook-form": "^7.84.0",
+        "recharts": "^3.10.1",
+        "tailwind-merge": "^3.6.0",
+        "zod": "^3.25.76"
+    }
+}
