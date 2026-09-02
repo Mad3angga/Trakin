@@ -37,7 +37,6 @@ Mendukung **Web Admin** (Owner, Manager, Front Desk, Sales, Trainer) dan **Membe
 - **Pengeluaran & Laporan** — expense, laporan finansial Harian/Mingguan/Bulanan
 - **Dashboard Owner** — ringkasan member aktif, grafik & AI assistant
 - **Pengaturan Gym** — Details/System/Receipt untuk Owner & Manager, Account untuk semua role, foto profil bisa dihapus
-- **Autentikasi** — login dengan background `login.avif`, demo pill 5 role
 - **Mobile** — Capacitor 8, `npm run cap:sync`
 
 ---
