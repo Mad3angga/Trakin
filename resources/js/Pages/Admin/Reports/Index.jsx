@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Pagination';
-import { Download, Printer, Filter, DollarSign, CreditCard, ShoppingCart, TrendingUp, Calendar, ArrowUpRight, QrCode, BarChart3, ChevronDown } from 'lucide-react';
+import { Download, Printer, Filter, DollarSign, CreditCard, ShoppingCart, TrendingUp, Calendar, ArrowUpRight, QrCode, BarChart3, ChevronDown, Wallet, Receipt } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 
 export default function ReportsIndex({ summary, sales, membershipTransactions, chartData, weeklyVisitData = [], monthlyVisitData = [], yearlyVisitData = [], filters }) {
@@ -198,7 +198,7 @@ export default function ReportsIndex({ summary, sales, membershipTransactions, c
                 {/* Financial Reports (Ringkasan Keuangan, Membership, Kasir) */}
                 {['all', 'membership', 'kasir'].includes(reportType) && (
                     <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${reportType === 'all' ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
                             {(reportType === 'all' || reportType === 'kasir') && (
                                 <div className="bg-white rounded-xl border border-gray-200 p-4">
                                     <div className="flex items-center justify-between">
@@ -239,18 +239,33 @@ export default function ReportsIndex({ summary, sales, membershipTransactions, c
                                             </div>
                                         </div>
                                         <p className="text-2xl font-semibold text-gray-900 mt-2">{formatIDR(summary.totalRevenue)}</p>
-                                        <p className="text-[11px] text-gray-400 mt-1">Gabungan POS + Membership</p>
+                                        <p className="text-[11px] text-gray-400 mt-1">Gabungan POS + Membership + PT</p>
+                                    </div>
+
+                                    <div className="bg-white rounded-xl border border-gray-200 p-4">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-medium text-gray-500">Total Pengeluaran</span>
+                                            <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                                                <Wallet className="w-4 h-4" />
+                                            </div>
+                                        </div>
+                                        <p className="text-2xl font-semibold text-gray-900 mt-2">{formatIDR(summary.expensesTotal || 0)}</p>
+                                        <p className="text-[11px] text-gray-400 mt-1">
+                                            {(summary.expensesTotal || 0) === 0 ? 'Tidak ada pengeluaran' : 'Periode terpilih'}
+                                        </p>
                                     </div>
 
                                     <div className="bg-white rounded-xl border border-gray-200 p-4">
                                         <div className="flex items-center justify-between">
                                             <span className="text-xs font-medium text-gray-500">Estimasi Laba Bersih</span>
-                                            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${ (summary.netIncome || 0) < 0 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
                                                 <TrendingUp className="w-4 h-4" />
                                             </div>
                                         </div>
-                                        <p className="text-2xl font-semibold text-gray-900 mt-2">{formatIDR(summary.netIncome)}</p>
-                                        <p className="text-[11px] text-gray-400 mt-1">Sesudah dipotong pengeluaran</p>
+                                        <p className={`text-2xl font-semibold mt-2 ${(summary.netIncome || 0) < 0 ? 'text-rose-600' : 'text-gray-900'}`}>{formatIDR(summary.netIncome || 0)}</p>
+                                        <p className="text-[11px] text-gray-400 mt-1">
+                                            {(summary.expensesTotal || 0) === 0 ? 'Tidak ada pengeluaran pada periode ini' : 'Sesudah dipotong pengeluaran'}
+                                        </p>
                                     </div>
                                 </>
                             )}

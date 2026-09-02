@@ -139,6 +139,12 @@ class ExpenseController extends Controller
 
     public function store(Request $request)
     {
+        // Konsistensi: hanya Owner & Manager yang boleh membuat pengeluaran (route sudah membatasi, tapi guard tambahan)
+        $user = auth()->user();
+        if (!$user || !$user->hasAnyRole(['Owner', 'Manager'])) {
+            abort(403, 'Hanya Owner & Manager yang dapat mencatat pengeluaran.');
+        }
+
         $validated = $request->validate([
             'category' => 'required|string|max:100',
             'description' => 'required|string|max:255',
@@ -178,6 +184,12 @@ class ExpenseController extends Controller
 
     public function update(Request $request, Expense $expense)
     {
+        // Hanya Owner & Manager yang boleh mengubah pengeluaran
+        $user = auth()->user();
+        if (!$user || !$user->hasAnyRole(['Owner', 'Manager'])) {
+            abort(403, 'Hanya Owner & Manager yang dapat mengubah pengeluaran.');
+        }
+
         $validated = $request->validate([
             'category' => 'required|string|max:100',
             'description' => 'required|string|max:255',
@@ -220,6 +232,12 @@ class ExpenseController extends Controller
 
     public function destroy(Expense $expense)
     {
+        // Hanya Owner & Manager yang boleh menghapus - defense in depth selain middleware role
+        $user = auth()->user();
+        if (!$user || !$user->hasAnyRole(['Owner', 'Manager'])) {
+            abort(403, 'Hanya Owner & Manager yang dapat menghapus pengeluaran.');
+        }
+
         if (!empty($expense->receipt_photo) && File::exists(public_path($expense->receipt_photo))) {
             File::delete(public_path($expense->receipt_photo));
         }

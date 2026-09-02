@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Pagination';
 import {
@@ -29,6 +29,11 @@ export default function ExpensesIndex({
     const [editingExpense, setEditingExpense] = useState(null);
     const [previewReceipt, setPreviewReceipt] = useState(null);
     const [deletingExpense, setDeletingExpense] = useState(null);
+
+    // Role guard: hanya Owner & Manager yang boleh kelola (hapus/edit) pengeluaran
+    const { auth } = usePage().props;
+    const userRoles = auth?.user?.roles || [];
+    const canManageExpense = userRoles.some((r) => ['Owner', 'Manager'].includes(r));
 
     // Add / Edit Form State
     const createForm = useForm({
@@ -255,13 +260,15 @@ export default function ExpensesIndex({
                             <p className="text-xs text-gray-500">Pencatatan biaya operasional, utilitas, gaji, sewa, dan pemeliharaan alat</p>
                         </div>
                         <div className="flex items-center gap-2 self-start sm:self-auto">
-                            <button
-                                type="button"
-                                onClick={handleOpenCreateModal}
-                                className="px-3.5 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
-                            >
-                                <Plus className="w-3.5 h-3.5" /> Tambah Pengeluaran
-                            </button>
+                            {canManageExpense && (
+                                <button
+                                    type="button"
+                                    onClick={handleOpenCreateModal}
+                                    className="px-3.5 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
+                                >
+                                    <Plus className="w-3.5 h-3.5" /> Tambah Pengeluaran
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 onClick={handlePrint}
@@ -614,24 +621,28 @@ export default function ExpensesIndex({
                                                     - {formatIDR(exp.amount)}
                                                 </td>
                                                 <td className="px-5 py-3.5 text-right whitespace-nowrap no-print">
-                                                    <div className="flex items-center justify-end gap-1">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleOpenEditModal(exp)}
-                                                            className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                                            title="Edit Pengeluaran"
-                                                        >
-                                                            <Edit3 className="w-3.5 h-3.5" />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDeletingExpense(exp)}
-                                                            className="p-1 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
-                                                            title="Hapus Pengeluaran"
-                                                        >
-                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                        </button>
-                                                    </div>
+                                                    {canManageExpense ? (
+                                                        <div className="flex items-center justify-end gap-1">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleOpenEditModal(exp)}
+                                                                className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                                title="Edit Pengeluaran"
+                                                            >
+                                                                <Edit3 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setDeletingExpense(exp)}
+                                                                className="p-1 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                                                                title="Hapus Pengeluaran"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-[11px] text-gray-400 italic">—</span>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );

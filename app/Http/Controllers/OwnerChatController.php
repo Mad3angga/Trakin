@@ -340,11 +340,19 @@ class OwnerChatController extends Controller
                 'breakdown_pengguna_by_role' => $roleBreakdown,
             ];
 
-            // 12. Complete Master Financial Summary & Net Profit Engine
-            $grandTotalRevenue = $posTotalAllTime + $membershipRevenueAll;
-            $monthTotalRevenue = $posTotalMonth + $membershipRevenueMonth;
+            // 12. Complete Master Financial Summary & Net Profit Engine - guard agar tidak minus saat tidak ada pengeluaran
+            $grandTotalRevenue = (float) ($posTotalAllTime + $membershipRevenueAll);
+            $monthTotalRevenue = (float) ($posTotalMonth + $membershipRevenueMonth);
+            $expensesMonth = (float) $expensesMonth;
+            $expensesAllTime = (float) $expensesAllTime;
             $monthNetProfit = $monthTotalRevenue - $expensesMonth;
             $allTimeNetProfit = $grandTotalRevenue - $expensesAllTime;
+            if ($expensesMonth == 0) {
+                $monthNetProfit = $monthTotalRevenue;
+            }
+            if ($expensesAllTime == 0) {
+                $allTimeNetProfit = $grandTotalRevenue;
+            }
 
             $financials = [
                 'grand_total_pendapatan_kotor_gym' => 'Rp ' . number_format($grandTotalRevenue, 0, ',', '.'),

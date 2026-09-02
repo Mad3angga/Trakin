@@ -32,27 +32,31 @@ class ReportController extends Controller
             $projectStartMonth = 1;
         }
 
-        // POS Sales total
-        $posTotal = Sale::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        // POS Sales total - cast ke float agar null/empty menjadi 0
+        $posTotal = (float) Sale::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->where('payment_status', 'paid')
             ->sum('total_amount');
 
         // Membership Transactions total
-        $membershipTotal = MembershipTransaction::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        $membershipTotal = (float) MembershipTransaction::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->where('status', 'paid')
             ->sum('amount');
 
         // PT Subscriptions total
-        $ptTotal = PtSubscription::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+        $ptTotal = (float) PtSubscription::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->where('payment_status', 'paid')
             ->sum('price_paid');
 
-        // Expenses total
-        $expensesTotal = Expense::whereBetween('expense_date', [$startDate, $endDate])
+        // Expenses total - COALESCE ke 0 ketika tidak ada data pengeluaran pada periode
+        $expensesTotal = (float) Expense::whereBetween('expense_date', [$startDate, $endDate])
             ->sum('amount');
 
-        $totalRevenue = $posTotal + $membershipTotal + $ptTotal;
+        $totalRevenue = (float) ($posTotal + $membershipTotal + $ptTotal);
+        // Estimasi laba bersih: jika tidak ada pengeluaran, laba = total omset (tidak boleh minus)
         $netIncome = $totalRevenue - $expensesTotal;
+        if ($expensesTotal == 0) {
+            $netIncome = $totalRevenue;
+        }
 
         // Total Attendance in period
         $attendanceTotal = Attendance::whereBetween('check_in_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])->count();
