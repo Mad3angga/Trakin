@@ -5,14 +5,22 @@ import Pagination from '@/Components/Pagination';
 import { Download, Printer, Filter, DollarSign, CreditCard, ShoppingCart, TrendingUp, Calendar, ArrowUpRight, QrCode, BarChart3, ChevronDown, Wallet, Receipt } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 
-export default function ReportsIndex({ summary, sales, membershipTransactions, chartData, weeklyVisitData = [], monthlyVisitData = [], yearlyVisitData = [], filters }) {
+export default function ReportsIndex({ summary, commissionSummary = {}, ptCommissionByTrainer = [], ptCommissionList = [], memCommissionBySales = [], memCommissionList = [], sales, membershipTransactions, chartData, weeklyVisitData = [], monthlyVisitData = [], yearlyVisitData = [], filters }) {
     const [startDate, setStartDate] = useState(filters.start_date);
     const [endDate, setEndDate] = useState(filters.end_date);
     const [selectedYear, setSelectedYear] = useState(filters.year || new Date().getFullYear());
     const [selectedMonth, setSelectedMonth] = useState(filters.month || (new Date().getMonth() + 1));
-    const [reportType, setReportType] = useState('all'); // 'all', 'membership', 'kasir', 'kunjungan'
+    const isTrakinReport = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'kunjungan';
+    const [reportType, setReportType] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('tab') === 'kunjungan') return 'kunjungan';
+        }
+        return 'all';
+    }); // 'all', 'membership', 'kasir' | 'kunjungan', 'komisi'
     const [visitPeriod, setVisitPeriod] = useState('bulanan'); // 'bulanan', 'tahunan'
     const [isPresetDropdownOpen, setIsPresetDropdownOpen] = useState(false);
+    const [commissionDetail, setCommissionDetail] = useState(null);
 
     const handleFilter = (e) => {
         e.preventDefault();
@@ -134,8 +142,8 @@ export default function ReportsIndex({ summary, sales, membershipTransactions, c
                 <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4 no-print">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
-                            <h2 className="text-base font-semibold text-gray-900">Laporan Keuangan & Kunjungan Gym</h2>
-                            <p className="text-xs text-gray-500">Ringkasan omset finansial, transaksi kasir, serta statistik kunjungan member</p>
+                            <h2 className="text-base font-semibold text-gray-900">{isTrakinReport ? 'Laporan Trakin' : 'Laporan Keuangan'}</h2>
+                            <p className="text-xs text-gray-500">{isTrakinReport ? 'Laporan kunjungan, komisi & aktivitas member' : 'Ringkasan omset finansial & transaksi kasir'}</p>
                         </div>
                         <div className="flex items-center gap-2 self-start sm:self-auto">
                             <button
@@ -157,38 +165,48 @@ export default function ReportsIndex({ summary, sales, membershipTransactions, c
 
                     {/* Filter Controls Bar */}
                     <div className="pt-4 border-t border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                        {/* 4 Main Top Tabs */}
-                        <div className="flex flex-wrap items-center bg-gray-100 p-1 rounded-lg gap-1">
-                            <button
-                                type="button"
-                                onClick={() => setReportType('all')}
-                                className={`px-3.5 py-1.5 text-xs font-medium rounded-md transition-colors ${reportType === 'all' ? 'bg-white text-gray-900 shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
-                            >
-                                Ringkasan Keuangan
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setReportType('membership')}
-                                className={`px-3.5 py-1.5 text-xs font-medium rounded-md transition-colors ${reportType === 'membership' ? 'bg-white text-gray-900 shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
-                            >
-                                Transaksi Membership
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setReportType('kasir')}
-                                className={`px-3.5 py-1.5 text-xs font-medium rounded-md transition-colors ${reportType === 'kasir' ? 'bg-white text-gray-900 shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
-                            >
-                                Transaksi POS Kasir
-                            </button>
-                            <div className="w-px h-4 bg-gray-300 mx-1 hidden sm:block" />
-                            <button
-                                type="button"
-                                onClick={() => setReportType('kunjungan')}
-                                className={`px-3.5 py-1.5 text-xs font-medium rounded-md transition-colors ${reportType === 'kunjungan' ? 'bg-white text-gray-900 shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
-                            >
-                                Laporan Kunjungan
-                            </button>
-                        </div>
+                        {isTrakinReport ? (
+                            <div className="flex flex-wrap items-center bg-gray-100 p-1 rounded-lg gap-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setReportType('kunjungan')}
+                                    className={`px-3.5 py-1.5 text-xs font-medium rounded-md transition-colors ${reportType === 'kunjungan' ? 'bg-white text-gray-900 shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
+                                >
+                                    Laporan Kunjungan
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setReportType('komisi')}
+                                    className={`px-3.5 py-1.5 text-xs font-medium rounded-md transition-colors ${reportType === 'komisi' ? 'bg-white text-gray-900 shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
+                                >
+                                    Laporan Komisi
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex flex-wrap items-center bg-gray-100 p-1 rounded-lg gap-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setReportType('all')}
+                                    className={`px-3.5 py-1.5 text-xs font-medium rounded-md transition-colors ${reportType === 'all' ? 'bg-white text-gray-900 shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
+                                >
+                                    Ringkasan Keuangan
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setReportType('membership')}
+                                    className={`px-3.5 py-1.5 text-xs font-medium rounded-md transition-colors ${reportType === 'membership' ? 'bg-white text-gray-900 shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
+                                >
+                                    Transaksi Membership
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setReportType('kasir')}
+                                    className={`px-3.5 py-1.5 text-xs font-medium rounded-md transition-colors ${reportType === 'kasir' ? 'bg-white text-gray-900 shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
+                                >
+                                    Transaksi POS Kasir
+                                </button>
+                            </div>
+                        )}
 
                         {/* Pill-Style Date Filter for Financial Reports */}
                         {['all', 'membership', 'kasir'].includes(reportType) && (
@@ -262,6 +280,44 @@ export default function ReportsIndex({ summary, sales, membershipTransactions, c
                                     <button type="submit" className="px-4 py-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold rounded-full shadow-2xs transition-colors">
                                         Terapkan
                                     </button>
+                                </form>
+                            </div>
+                        )}
+                        {reportType === 'komisi' && (
+                            <div className="flex flex-wrap items-center gap-2">
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsPresetDropdownOpen(!isPresetDropdownOpen)}
+                                        className={`inline-flex items-center gap-1.5 border rounded-full px-3.5 py-1.5 text-xs font-medium transition-all shadow-2xs ${isPresetDropdownOpen
+                                            ? 'bg-blue-50 border-blue-500 text-blue-700 font-semibold'
+                                            : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50'
+                                            }`}
+                                        title="Filter Periode Cepat"
+                                    >
+                                        <Filter className="w-3.5 h-3.5 text-gray-500" />
+                                        <span>Periode Cepat</span>
+                                        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isPresetDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {isPresetDropdownOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-20" onClick={() => setIsPresetDropdownOpen(false)} />
+                                            <div className="absolute left-0 mt-1.5 w-44 bg-white border border-gray-200 rounded-xl shadow-lg z-30 py-1 text-xs">
+                                                <button type="button" onClick={() => { handleQuickPreset('month'); setIsPresetDropdownOpen(false); }} className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 font-medium">Bulan Ini</button>
+                                                <button type="button" onClick={() => { handleQuickPreset('30days'); setIsPresetDropdownOpen(false); }} className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 font-medium">30 Hari Terakhir</button>
+                                                <button type="button" onClick={() => { handleQuickPreset('today'); setIsPresetDropdownOpen(false); }} className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 font-medium">Hari Ini</button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                                <form onSubmit={handleFilter} className="flex flex-wrap items-center gap-2">
+                                    <div className="relative inline-flex items-center bg-white border border-gray-200 hover:border-gray-300 rounded-full px-3.5 py-1.5 shadow-2xs transition-all">
+                                        <span className="text-xs font-bold text-gray-900 mr-1.5">Tanggal:</span>
+                                        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent text-xs text-gray-600 font-medium focus:outline-none cursor-pointer" />
+                                        <span className="text-xs text-gray-400 mx-1">s/d</span>
+                                        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent text-xs text-gray-600 font-medium focus:outline-none cursor-pointer" />
+                                    </div>
+                                    <button type="submit" className="px-4 py-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold rounded-full shadow-2xs transition-colors">Terapkan</button>
                                 </form>
                             </div>
                         )}
@@ -510,12 +566,9 @@ export default function ReportsIndex({ summary, sales, membershipTransactions, c
                         {/* Identical Table Card */}
                         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                             <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <QrCode className="w-4 h-4 text-blue-600" />
-                                    <h3 className="font-semibold text-sm text-gray-900">
-                                        Rincian Tabel Kunjungan {visitPeriod === 'bulanan' ? `Per Bulan (${selectedYear})` : 'Per Tahun'}
-                                    </h3>
-                                </div>
+                                <h3 className="font-semibold text-sm text-gray-900">
+                                    Rincian Tabel Kunjungan {visitPeriod === 'bulanan' ? `Per Bulan (${selectedYear})` : 'Per Tahun'}
+                                </h3>
                                 <span className="text-xs text-gray-500 font-medium">Total: {activeVisitData.length} Periode</span>
                             </div>
                             <div className="overflow-x-auto">
@@ -544,14 +597,136 @@ export default function ReportsIndex({ summary, sales, membershipTransactions, c
                     </>
                 )}
 
+                {/* Laporan Komisi */}
+                {reportType === 'komisi' && (
+                    <>
+                        {/* Summary Cards — klik untuk lihat detail */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <button type="button" onClick={() => setCommissionDetail({ type: 'pt', title: 'Detail Paket PT', list: ptCommissionList })} className="bg-white rounded-xl border border-gray-200 p-4 text-left hover:border-blue-200 hover:shadow-sm transition-all cursor-pointer">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-medium text-gray-500">Komisi PT</span>
+                                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center"><Wallet className="w-4 h-4" /></div>
+                                </div>
+                                <p className="text-xl font-semibold text-gray-900 mt-2">{formatIDR(commissionSummary.pt_total || 0)}</p>
+                                <p className="text-[11px] text-gray-400 mt-1">{commissionSummary.pt_count || 0} paket • Rate {commissionSummary.pt_rate}{commissionSummary.pt_type === 'percent' ? '%' : ' flat'}</p>
+                                <p className="text-[10px] text-blue-600 mt-2 font-medium">Klik untuk detail →</p>
+                            </button>
+                            <button type="button" onClick={() => setCommissionDetail({ type: 'membership', title: 'Detail Closing Membership', list: memCommissionList })} className="bg-white rounded-xl border border-gray-200 p-4 text-left hover:border-amber-200 hover:shadow-sm transition-all cursor-pointer">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-medium text-gray-500">Komisi Membership</span>
+                                    <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center"><CreditCard className="w-4 h-4" /></div>
+                                </div>
+                                <p className="text-xl font-semibold text-gray-900 mt-2">{formatIDR(commissionSummary.membership_total || 0)}</p>
+                                <p className="text-[11px] text-gray-400 mt-1">{commissionSummary.membership_count || 0} closing • {commissionSummary.membership_type === 'percent' ? commissionSummary.membership_rate+'%' : formatIDR(commissionSummary.membership_rate)+' flat'}</p>
+                                <p className="text-[10px] text-amber-600 mt-2 font-medium">Klik untuk detail →</p>
+                            </button>
+                            <div className="bg-white rounded-xl border border-gray-200 p-4">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-medium text-gray-500">Total Komisi</span>
+                                    <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center"><DollarSign className="w-4 h-4" /></div>
+                                </div>
+                                <p className="text-xl font-semibold text-gray-900 mt-2">{formatIDR(commissionSummary.grand_total || 0)}</p>
+                                <p className="text-[11px] text-gray-400 mt-1">PT + Membership periode ini</p>
+                            </div>
+                        </div>
+
+                        {/* PT Commission by Trainer */}
+                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                            <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+                                <h3 className="font-semibold text-sm text-gray-900">Komisi PT per Trainer</h3>
+                                <span className="text-xs text-gray-500 font-medium">{ptCommissionByTrainer.length} Trainer</span>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-gray-50 text-xs font-medium text-gray-500 border-b border-gray-200">
+                                        <tr>
+                                            <th className="px-5 py-3">Trainer</th>
+                                            <th className="px-5 py-3 text-center">Paket</th>
+                                            <th className="px-5 py-3 text-right">Omset PT</th>
+                                            <th className="px-5 py-3 text-right">Komisi ({commissionSummary.pt_type === 'percent' ? commissionSummary.pt_rate+'%' : 'flat'})</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {ptCommissionByTrainer.length === 0 ? (
+                                            <tr><td colSpan="4" className="px-5 py-8 text-center text-gray-400 text-xs">Tidak ada komisi PT di periode ini.</td></tr>
+                                        ) : ptCommissionByTrainer.map((row) => (
+                                            <tr key={row.trainer_id} onClick={() => setCommissionDetail({ type: 'pt', title: `Detail PT — ${row.trainer_name}`, list: ptCommissionList.filter(x => x.trainer_name === row.trainer_name) })} className="hover:bg-gray-50 transition-colors cursor-pointer">
+                                                <td className="px-5 py-3.5 font-medium text-gray-900">{row.trainer_name}</td>
+                                                <td className="px-5 py-3.5 text-center text-gray-600">{row.count}</td>
+                                                <td className="px-5 py-3.5 text-right text-gray-900">{formatIDR(row.omset)}</td>
+                                                <td className="px-5 py-3.5 text-right font-semibold text-blue-600">{formatIDR(row.komisi)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Membership Commission by Sales */}
+                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                            <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+                                <h3 className="font-semibold text-sm text-gray-900">Komisi Membership per Sales</h3>
+                                <span className="text-xs text-gray-500 font-medium">{memCommissionBySales.length} Sales</span>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-gray-50 text-xs font-medium text-gray-500 border-b border-gray-200">
+                                        <tr>
+                                            <th className="px-5 py-3">Sales</th>
+                                            <th className="px-5 py-3 text-center">Closing</th>
+                                            <th className="px-5 py-3 text-right">Omset Membership</th>
+                                            <th className="px-5 py-3 text-right">Komisi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {memCommissionBySales.length === 0 ? (
+                                            <tr><td colSpan="4" className="px-5 py-8 text-center text-gray-400 text-xs">Tidak ada komisi membership di periode ini.</td></tr>
+                                        ) : memCommissionBySales.map((row) => (
+                                            <tr key={row.user_id} onClick={() => setCommissionDetail({ type: 'membership', title: `Detail Closing — ${row.user_name}`, list: memCommissionList.filter(x => x.sales_name === row.user_name) })} className="hover:bg-gray-50 transition-colors cursor-pointer">
+                                                <td className="px-5 py-3.5 font-medium text-gray-900">{row.user_name}</td>
+                                                <td className="px-5 py-3.5 text-center text-gray-600">{row.count}</td>
+                                                <td className="px-5 py-3.5 text-right text-gray-900">{formatIDR(row.omset)}</td>
+                                                <td className="px-5 py-3.5 text-right font-semibold text-amber-600">{formatIDR(row.komisi)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Detail Inline Card */}
+                        {commissionDetail && (
+                            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-gray-50">
+                                    <h3 className="text-sm font-bold text-gray-900">{commissionDetail.title}</h3>
+                                    <button onClick={() => setCommissionDetail(null)} className="text-xs font-medium text-gray-500 hover:text-gray-700">Tutup ✕</button>
+                                </div>
+                                <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+                                    {commissionDetail.list.length === 0 ? (
+                                        <p className="p-8 text-center text-xs text-gray-400">Tidak ada data.</p>
+                                    ) : commissionDetail.list.map((r) => (
+                                        <div key={r.id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50">
+                                            <div>
+                                                <p className="text-xs font-medium text-gray-900">{commissionDetail.type === 'pt' ? `${r.member_name} — ${r.trainer_name}` : `${r.member_name} — ${r.sales_name}`}</p>
+                                                <p className="text-[11px] text-gray-400">{commissionDetail.type === 'pt' ? `${r.date} • ${r.total_sessions} sesi` : `${r.transaction_code} • ${r.date}`}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-xs font-medium text-gray-900">{formatIDR(commissionDetail.type === 'pt' ? r.price_paid : r.amount)}</p>
+                                                <p className={`text-[11px] font-semibold ${commissionDetail.type === 'pt' ? 'text-blue-600' : 'text-amber-600'}`}>Komisi {formatIDR(r.komisi)}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+
                 {/* Membership Transactions Table */}
-                {(reportType === 'all' || reportType === 'membership') && (
+                {!isTrakinReport && (reportType === 'all' || reportType === 'membership') && (
                     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                         <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <CreditCard className="w-4 h-4 text-purple-600" />
-                                <h3 className="font-semibold text-sm text-gray-900">Rincian Transaksi Membership</h3>
-                            </div>
+                            <h3 className="font-semibold text-sm text-gray-900">Rincian Transaksi Membership</h3>
                             <span className="text-xs text-gray-500 font-medium">Total: {membershipTransactions.total || membershipTransactions.data?.length || 0} Transaksi</span>
                         </div>
                         <div className="overflow-x-auto">
@@ -589,13 +764,10 @@ export default function ReportsIndex({ summary, sales, membershipTransactions, c
                 )}
 
                 {/* POS Sales Table */}
-                {(reportType === 'all' || reportType === 'kasir') && (
+                {!isTrakinReport && (reportType === 'all' || reportType === 'kasir') && (
                     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                         <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <ShoppingCart className="w-4 h-4 text-blue-600" />
-                                <h3 className="font-semibold text-sm text-gray-900">Rincian Transaksi POS Kasir</h3>
-                            </div>
+                            <h3 className="font-semibold text-sm text-gray-900">Rincian Transaksi POS Kasir</h3>
                             <span className="text-xs text-gray-500 font-medium">Total: {sales.total || sales.data?.length || 0} Transaksi</span>
                         </div>
                         <div className="overflow-x-auto">

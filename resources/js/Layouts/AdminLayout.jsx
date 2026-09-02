@@ -59,31 +59,48 @@ export default function AdminLayout({ children, title, hideHeader = false, hideB
     const [posDropdownOpen, setPosDropdownOpen] = useState(currentPath.startsWith('/pos'));
     const [trainerDropdownOpen, setTrainerDropdownOpen] = useState(currentPath === '/trainers' || currentPath === '/personal-trainer');
 
-    const allNav = [
-        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['Owner', 'Manager', 'Front Desk', 'Sales', 'Trainer'] },
-        { name: 'Member', href: '/members', icon: Users, roles: ['Owner', 'Manager', 'Front Desk', 'Sales'] },
-        { name: 'Paket Gym', href: '/packages', icon: CreditCard, roles: ['Owner', 'Manager'] },
-        { name: 'Check-In', href: '/attendance/kiosk', icon: ScanLine, roles: ['Owner', 'Manager', 'Front Desk', 'Sales'], feature: 'feature_kiosk_qr' },
-        { name: 'Kehadiran', href: '/attendance', icon: ClipboardList, roles: ['Owner', 'Manager', 'Front Desk', 'Sales', 'Trainer'] },
-        { name: 'POS', href: '/pos', icon: ShoppingCart, roles: ['Owner', 'Manager', 'Front Desk', 'Sales'], feature: 'feature_pos_module' },
-        { name: 'Kelas', href: '/classes', icon: Calendar, roles: ['Owner', 'Manager', 'Trainer'], feature: 'feature_class_booking' },
+    const navGroups = [
         {
-            name: 'Manajemen PT',
-            id: 'trainer',
-            icon: Dumbbell,
-            roles: ['Owner', 'Manager', 'Front Desk', 'Sales'],
-            hasChildren: true,
-            children: [
-                { name: 'Daftar Trainer', href: '/trainers', icon: Dumbbell, roles: ['Owner', 'Manager'] },
-                { name: 'Jadwal & Sesi PT', href: '/personal-trainer', icon: UserCheck, roles: ['Owner', 'Manager', 'Front Desk', 'Sales'], feature: 'feature_pt_booking' },
-            ]
+            label: 'Operasional',
+            items: [
+                { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['Owner', 'Manager', 'Front Desk', 'Sales', 'Trainer'] },
+                { name: 'Member', href: '/members', icon: Users, roles: ['Owner', 'Manager', 'Front Desk', 'Sales'] },
+                { name: 'Check-In', href: '/attendance/kiosk', icon: ScanLine, roles: ['Owner', 'Manager', 'Front Desk', 'Sales'], feature: 'feature_kiosk_qr' },
+                { name: 'Kehadiran', href: '/attendance', icon: ClipboardList, roles: ['Owner', 'Manager', 'Front Desk', 'Sales', 'Trainer'] },
+                { name: 'Kelas', href: '/classes', icon: Calendar, roles: ['Owner', 'Manager', 'Trainer'], feature: 'feature_class_booking' },
+                {
+                    name: 'Manajemen PT',
+                    id: 'trainer',
+                    icon: Dumbbell,
+                    roles: ['Owner', 'Manager', 'Front Desk', 'Sales'],
+                    hasChildren: true,
+                    children: [
+                        { name: 'Daftar Trainer', href: '/trainers', icon: Dumbbell, roles: ['Owner', 'Manager'] },
+                        { name: 'Jadwal & Sesi PT', href: '/personal-trainer', icon: UserCheck, roles: ['Owner', 'Manager', 'Front Desk', 'Sales'], feature: 'feature_pt_booking' },
+                    ]
+                },
+            ],
         },
-        { name: 'Inventori', href: '/inventory', icon: Package, roles: ['Owner', 'Manager'] },
-        { name: 'Pengeluaran', href: '/expenses', icon: Receipt, roles: ['Owner', 'Manager'] },
-        { name: 'Laporan', href: '/reports', icon: BarChart3, roles: ['Owner', 'Manager'] },
-        { name: 'Manajemen Staf', href: '/users', icon: ShieldCheck, roles: ['Owner'] },
-        { name: 'AI Assistant', href: '/owner/ai-assistant', icon: Sparkles, roles: ['Owner', 'Manager'] },
+        {
+            label: 'Transaksi',
+            items: [
+                { name: 'POS', href: '/pos', icon: ShoppingCart, roles: ['Owner', 'Manager', 'Front Desk', 'Sales'], feature: 'feature_pos_module' },
+                { name: 'Inventori', href: '/inventory', icon: Package, roles: ['Owner', 'Manager'] },
+                { name: 'Pengeluaran', href: '/expenses', icon: Receipt, roles: ['Owner', 'Manager'] },
+                { name: 'Laporan Keuangan', href: '/reports', icon: BarChart3, roles: ['Owner', 'Manager'] },
+            ],
+        },
+        {
+            label: 'Sistem',
+            items: [
+                { name: 'Paket Gym', href: '/packages', icon: CreditCard, roles: ['Owner', 'Manager'] },
+                { name: 'Laporan Trakin', href: '/reports?tab=kunjungan', icon: ClipboardList, roles: ['Owner', 'Manager'] },
+                { name: 'Manajemen Staf', href: '/users', icon: ShieldCheck, roles: ['Owner'] },
+                { name: 'AI Assistant', href: '/owner/ai-assistant', icon: Sparkles, roles: ['Owner', 'Manager'] },
+            ],
+        },
     ];
+    const allNav = navGroups.flatMap((g) => g.items);
 
     const isFeatureEnabled = (key) => {
         if (!key) return true;
@@ -103,7 +120,7 @@ export default function AdminLayout({ children, title, hideHeader = false, hideB
                 <div className="fixed inset-0 z-40 bg-black/10 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
             )}
 
-            <aside className={`fixed inset-y-0 left-0 z-50 ${sidebarCollapsed ? 'w-[72px]' : 'w-[240px]'} bg-white border-r border-gray-100/80 transform transition-all duration-300 ease-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col`}>
+            <aside className={`fixed inset-y-0 left-0 z-50 ${sidebarCollapsed ? 'w-[72px]' : 'w-[220px]'} bg-white border-r border-gray-100/80 transform transition-all duration-300 ease-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col`}>
                 <div className={`h-14 px-4 flex items-center border-b border-gray-100/80 shrink-0 ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
                     {sidebarCollapsed ? (
                         <button type="button" onClick={() => setSidebarCollapsed(false)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors" title="Tampilkan sidebar">
@@ -124,65 +141,94 @@ export default function AdminLayout({ children, title, hideHeader = false, hideB
                     )}
                 </div>
 
-                <nav className={`flex-1 overflow-y-auto p-3 space-y-1 ${sidebarCollapsed ? 'overflow-x-hidden px-2' : ''}`}>
-                    {nav.map((item) => {
-                        const Icon = item.icon;
-                        if (item.hasChildren) {
-                            const isTrainer = item.id === 'trainer';
-                            const isOpen = isTrainer ? trainerDropdownOpen : posDropdownOpen;
-                            const toggleOpen = isTrainer ? () => setTrainerDropdownOpen(!trainerDropdownOpen) : () => setPosDropdownOpen(!posDropdownOpen);
-                            const isParentActive = isTrainer ? (currentPath === '/trainers' || currentPath.startsWith('/personal-trainer')) : currentPath.startsWith('/pos');
-                            const visibleChildren = item.children.filter((child) => {
-                                if (!child.roles.includes(role)) return false;
-                                if (child.feature && !isFeatureEnabled(child.feature)) return false;
-                                return true;
-                            });
-                            if (visibleChildren.length === 0) return null;
-                            return (
-                                <div key={item.name} className="space-y-1">
-                                    <button
-                                        type="button"
-                                        onClick={toggleOpen}
-                                        className={`${sidebarCollapsed ? 'justify-center' : 'justify-between'} w-full flex items-center px-3 py-2 rounded-2xl text-xs transition-all duration-200 ${isParentActive ? 'bg-blue-50 text-blue-700 font-medium border border-blue-100' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium'}`}
-                                    >
-                                        <div className="flex items-center gap-2.5">
-                                            <Icon className="w-[18px] h-[18px] shrink-0" />
-                                            {!sidebarCollapsed && <span>{item.name}</span>}
-                                        </div>
-                                        {!sidebarCollapsed && <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />}
-                                    </button>
-                                    {isOpen && !sidebarCollapsed && (
-                                        <div className="ml-2 pl-3 border-l border-gray-100 space-y-1">
-                                            {visibleChildren.map((subItem) => {
-                                                const SubIcon = subItem.icon;
-                                                const isSubActive = currentPath === subItem.href;
-                                                return (
-                                                    <Link
-                                                        key={subItem.name}
-                                                        href={subItem.href}
-                                                        className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all duration-200 ${isSubActive ? 'bg-blue-50 text-blue-700 font-medium border border-blue-100' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium'}`}
-                                                    >
-                                                        <SubIcon className="w-3.5 h-3.5 shrink-0" />
-                                                        <span>{subItem.name}</span>
-                                                    </Link>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        }
-                        const active = currentPath === item.href;
+                <nav className={`flex-1 overflow-y-auto p-3 ${sidebarCollapsed ? 'overflow-x-hidden px-2 space-y-1' : 'space-y-5'} `}>
+                    {navGroups.map((group) => {
+                        const visibleItems = group.items.filter((item) => {
+                            if (!item.roles.includes(role)) return false;
+                            if (item.feature && !isFeatureEnabled(item.feature)) return false;
+                            if (item.hasChildren) {
+                                const visChildren = item.children.filter((c) => c.roles.includes(role) && (!c.feature || isFeatureEnabled(c.feature)));
+                                if (visChildren.length === 0) return false;
+                            }
+                            return true;
+                        });
+                        if (visibleItems.length === 0) return null;
                         return (
-                            <Link
-                                key={item.name}
-                                href={item.href}
-                                title={sidebarCollapsed ? item.name : undefined}
-                                className={`${sidebarCollapsed ? 'justify-center px-2' : ''} flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs transition-all duration-200 ${active ? 'bg-blue-50 text-blue-700 font-medium border border-blue-100' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium'}`}
-                            >
-                                <Icon className="w-[18px] h-[18px] shrink-0" />
-                                {!sidebarCollapsed && item.name}
-                            </Link>
+                            <div key={group.label} className="space-y-1">
+                                {!sidebarCollapsed && (
+                                    <p className="px-3 pt-1 pb-1.5 text-[10px] font-semibold tracking-widest text-gray-400 uppercase select-none">{group.label}</p>
+                                )}
+                                {sidebarCollapsed && <div className="mx-2 border-t border-gray-100 my-1" />}
+                                <div className="space-y-1">
+                                    {visibleItems.map((item) => {
+                                        const Icon = item.icon;
+                                        if (item.hasChildren) {
+                                            const isTrainer = item.id === 'trainer';
+                                            const isOpen = isTrainer ? trainerDropdownOpen : posDropdownOpen;
+                                            const toggleOpen = isTrainer ? () => setTrainerDropdownOpen(!trainerDropdownOpen) : () => setPosDropdownOpen(!posDropdownOpen);
+                                            const isParentActive = isTrainer ? (currentPath === '/trainers' || currentPath.startsWith('/personal-trainer')) : currentPath.startsWith('/pos');
+                                            const visibleChildren = item.children.filter((child) => {
+                                                if (!child.roles.includes(role)) return false;
+                                                if (child.feature && !isFeatureEnabled(child.feature)) return false;
+                                                return true;
+                                            });
+                                            if (visibleChildren.length === 0) return null;
+                                            return (
+                                                <div key={item.name} className="space-y-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={toggleOpen}
+                                                        className={`${sidebarCollapsed ? 'justify-center' : 'justify-between'} w-full flex items-center px-3 py-2 rounded-2xl text-xs transition-all duration-200 ${isParentActive ? 'bg-blue-50 text-blue-700 font-medium border border-blue-100' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium'}`}
+                                                    >
+                                                        <div className="flex items-center gap-2.5">
+                                                            <Icon className="w-[18px] h-[18px] shrink-0" />
+                                                            {!sidebarCollapsed && <span>{item.name}</span>}
+                                                        </div>
+                                                        {!sidebarCollapsed && <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />}
+                                                    </button>
+                                                    {isOpen && !sidebarCollapsed && (
+                                                        <div className="ml-2 pl-3 border-l border-gray-100 space-y-1">
+                                                            {visibleChildren.map((subItem) => {
+                                                                const SubIcon = subItem.icon;
+                                                                const isSubActive = currentPath === subItem.href;
+                                                                return (
+                                                                    <Link
+                                                                        key={subItem.name}
+                                                                        href={subItem.href}
+                                                                        className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all duration-200 ${isSubActive ? 'bg-blue-50 text-blue-700 font-medium border border-blue-100' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium'}`}
+                                                                    >
+                                                                        <SubIcon className="w-3.5 h-3.5 shrink-0" />
+                                                                        <span>{subItem.name}</span>
+                                                                    </Link>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        }
+                                        const isReportActive = (href) => {
+                                            const search = typeof window !== 'undefined' ? window.location.search : '';
+                                            const isKunjungan = search.includes('tab=kunjungan');
+                                            if (href.includes('tab=kunjungan')) return currentPath === '/reports' && isKunjungan;
+                                            if (href === '/reports') return currentPath === '/reports' && !isKunjungan;
+                                            return currentPath === href;
+                                        };
+                                        const active = isReportActive(item.href);
+                                        return (
+                                            <Link
+                                                key={item.name}
+                                                href={item.href}
+                                                title={sidebarCollapsed ? item.name : undefined}
+                                                className={`${sidebarCollapsed ? 'justify-center px-2' : ''} flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs transition-all duration-200 ${active ? 'bg-blue-50 text-blue-700 font-medium border border-blue-100' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium'}`}
+                                            >
+                                                <Icon className="w-[18px] h-[18px] shrink-0" />
+                                                {!sidebarCollapsed && item.name}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                         );
                     })}
                 </nav>
@@ -215,12 +261,12 @@ export default function AdminLayout({ children, title, hideHeader = false, hideB
             </aside>
 
             {flags.feature_maintenance_mode && (
-                <div className={`${sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[240px]'} bg-amber-500 text-white text-xs font-semibold px-4 py-2 flex items-center justify-center gap-2 transition-all duration-300`}>
+                <div className={`${sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[220px]'} bg-amber-500 text-white text-xs font-semibold px-4 py-2 flex items-center justify-center gap-2 transition-all duration-300`}>
                     <span>🚧 Mode Pemeliharaan Aktif — Beberapa fitur mungkin dibatasi.</span>
                 </div>
             )}
 
-            <div className={`${sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[240px]'} transition-all duration-300`}>
+            <div className={`${sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[220px]'} transition-all duration-300`}>
                 {!hideHeader && (
                     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-100/80">
                         <div className="h-14 flex items-center px-4 lg:px-8">

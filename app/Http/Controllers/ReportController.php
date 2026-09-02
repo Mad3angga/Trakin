@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\Expense;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\MembershipTransaction;
 use App\Models\PtSubscription;
@@ -255,6 +256,99 @@ class ReportController extends Controller
             ];
         }
 
+        // Komisi — hitung berdasarkan rate di Settings (periode start_date s/d end_date)
+        $commissionSettings = Setting::whereIn('key', ['commission_pt_rate','commission_pt_type','commission_membership_rate','commission_membership_type'])->pluck('value','key');
+        $ptRate = (float) ($commissionSettings['commission_pt_rate'] ?? 45);
+        $ptType = $commissionSettings['commission_pt_type'] ?? 'percent';
+        $memRate = (float) ($commissionSettings['commission_membership_rate'] ?? 50000);
+        $memType = $commissionSettings['commission_membership_type'] ?? 'flat';
+
+        // PT subscriptions in period
+        $ptSubscriptions = PtSubscription::with(['trainer:id,full_name', 'member:id,full_name'])
+            ->whereBetween('created_at', [$startDate.' 00:00:00', $endDate.' 23:59:59'])
+            ->where('payment_status', 'paid')
+            ->latest()
+            ->get();
+
+        $calcPt = function($price) use ($ptRate, $ptType) {
+            if ($ptType === 'percent') return $price * $ptRate / 100;
+            return $ptRate;
+        };
+        $calcMem = function($amount) use ($memRate, $memType) {
+            if ($memType === 'percent') return $amount * $memRate / 100;
+            return $memRate;
+        };
+
+        $ptCommissionTotal = 0;
+        $ptCommissionByTrainer = [];
+        $ptCommissionList = [];
+        foreach ($ptSubscriptions as $sub) {
+            $comm = $calcPt((float) $sub->price_paid);
+            $ptCommissionTotal += $comm;
+            $tid = $sub->trainer_id ?? 'unknown';
+            $tname = $sub->trainer->full_name ?? 'Tanpa Trainer';
+            if (!isset($ptCommissionByTrainer[$tid])) {
+                $ptCommissionByTrainer[$tid] = ['trainer_id'=>$tid, 'trainer_name'=>$tname, 'count'=>0, 'omset'=>0, 'komisi'=>0];
+            }
+            $ptCommissionByTrainer[$tid]['count'] += 1;
+            $ptCommissionByTrainer[$tid]['omset'] += (float) $sub->price_paid;
+            $ptCommissionByTrainer[$tid]['komisi'] += $comm;
+            $ptCommissionList[] = [
+                'id'=>$sub->id,
+                'member_name'=>$sub->member->full_name ?? '-',
+                'trainer_name'=>$tname,
+                'price_paid'=>(float) $sub->price_paid,
+                'komisi'=> (float) $comm,
+                'date'=> $sub->created_at->toDateString(),
+                'total_sessions'=> $sub->total_sessions,
+            ];
+        }
+
+        // Membership transactions in period — komisi diambil dari pilihan komisi saat registrasi (sold_by_id di subscription), bukan dari akun login (created_by)
+        $memTransactions = MembershipTransaction::with(['member:id,full_name', 'subscription.soldBy:id,name', 'creator:id,name'])
+            ->whereBetween('created_at', [$startDate.' 00:00:00', $endDate.' 23:59:59'])
+            ->where('status', 'paid')
+            ->latest()
+            ->get();
+
+        $memCommissionTotal = 0;
+        $memCommissionBySales = [];
+        $memCommissionList = [];
+        foreach ($memTransactions as $tx) {
+            $comm = $calcMem((float) $tx->amount);
+            $memCommissionTotal += $comm;
+            $soldBy = $tx->subscription?->soldBy;
+            $uid = $soldBy?->id ?? $tx->subscription?->sold_by_id ?? $tx->created_by ?? 'unknown';
+            $uname = $soldBy?->name ?? $tx->creator?->name ?? 'Tanpa Komisi';
+            if (!isset($memCommissionBySales[$uid])) {
+                $memCommissionBySales[$uid] = ['user_id'=>$uid, 'user_name'=>$uname, 'count'=>0, 'omset'=>0, 'komisi'=>0];
+            }
+            $memCommissionBySales[$uid]['count'] += 1;
+            $memCommissionBySales[$uid]['omset'] += (float) $tx->amount;
+            $memCommissionBySales[$uid]['komisi'] += $comm;
+            $memCommissionList[] = [
+                'id'=>$tx->id,
+                'transaction_code'=>$tx->transaction_code,
+                'member_name'=>$tx->member->full_name ?? '-',
+                'sales_name'=>$uname,
+                'amount'=>(float) $tx->amount,
+                'komisi'=> (float) $comm,
+                'date'=> $tx->created_at->toDateString(),
+            ];
+        }
+
+        $commissionSummary = [
+            'pt_rate'=> $ptRate,
+            'pt_type'=> $ptType,
+            'membership_rate'=> $memRate,
+            'membership_type'=> $memType,
+            'pt_total'=> (float) $ptCommissionTotal,
+            'pt_count'=> count($ptCommissionList),
+            'membership_total'=> (float) $memCommissionTotal,
+            'membership_count'=> count($memCommissionList),
+            'grand_total'=> (float) ($ptCommissionTotal + $memCommissionTotal),
+        ];
+
         return Inertia::render('Admin/Reports/Index', [
             'summary' => [
                 'posTotal' => (float) $posTotal,
@@ -265,6 +359,11 @@ class ReportController extends Controller
                 'netIncome' => (float) $netIncome,
                 'attendanceTotal' => $attendanceTotal,
             ],
+            'commissionSummary' => $commissionSummary,
+            'ptCommissionByTrainer' => array_values($ptCommissionByTrainer),
+            'ptCommissionList' => $ptCommissionList,
+            'memCommissionBySales' => array_values($memCommissionBySales),
+            'memCommissionList' => $memCommissionList,
             'sales' => $sales,
             'membershipTransactions' => $membershipTransactions,
             'chartData' => $chartData,

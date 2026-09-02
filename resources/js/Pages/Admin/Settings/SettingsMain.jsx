@@ -181,6 +181,10 @@ export default function SettingsMain({ gymSettings = {}, ownerAccount = {}, devS
         pos_receipt_footer_title: gymSettings.pos_receipt_footer_title || 'TERIMA KASIH',
         pos_receipt_footer_note: gymSettings.pos_receipt_footer_note || 'Selamat Berolahraga & Stay Fit!',
         pos_receipt_show_tax: gymSettings.pos_receipt_show_tax ?? '1',
+        commission_pt_rate: gymSettings.commission_pt_rate ?? '45',
+        commission_pt_type: gymSettings.commission_pt_type ?? 'percent',
+        commission_membership_rate: gymSettings.commission_membership_rate ?? '50000',
+        commission_membership_type: gymSettings.commission_membership_type ?? 'flat',
         owner_name: ownerAccount?.name || user?.name || '',
         owner_email: ownerAccount?.email || user?.email || '',
         owner_phone: ownerAccount?.phone || user?.phone || '',
@@ -361,10 +365,10 @@ export default function SettingsMain({ gymSettings = {}, ownerAccount = {}, devS
 
                 {/* Main Content Form Card */}
                 {activeTab !== 'broadcast' && activeTab !== 'dev' && (
-                    <form onSubmit={submit} className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-2xs space-y-6">
+                    <form onSubmit={submit} className="space-y-6">
                         {/* TAB 1: PROFIL GYM (DETAILS) */}
                         {activeTab === 'general' && (
-                            <div>
+                            <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-2xs">
                                 {/* Section Subheader */}
                                 <div className="pb-6 border-b border-gray-100">
                                     <h2 className="text-base font-bold text-gray-900">Profile Details</h2>
@@ -564,7 +568,7 @@ export default function SettingsMain({ gymSettings = {}, ownerAccount = {}, devS
 
                         {/* TAB 2: AKUN OWNER (ACCOUNT) */}
                         {activeTab === 'account' && (
-                            <div>
+                            <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-2xs">
                                 {/* Section Subheader */}
                                 {/* Row 0: Foto Profil */}
                                 <div className="py-6 border-b border-gray-100 grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
@@ -738,7 +742,7 @@ export default function SettingsMain({ gymSettings = {}, ownerAccount = {}, devS
 
                         {/* TAB 3: SYSTEM & REGIONAL */}
                         {activeTab === 'system' && (
-                            <div>
+                            <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-2xs">
                                 {/* Section Subheader */}
                                 <div className="pb-6 border-b border-gray-100">
                                     <h2 className="text-base font-bold text-gray-900">System Configurations</h2>
@@ -828,9 +832,91 @@ export default function SettingsMain({ gymSettings = {}, ownerAccount = {}, devS
                             </div>
                         )}
 
+                        {/* Komisi Card — terpisah di bawah card System */}
+                        {activeTab === 'system' && (
+                            <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-2xs">
+                                <div className="pb-6 border-b border-gray-100">
+                                    <h2 className="text-base font-bold text-gray-900">Komisi</h2>
+                                    <p className="text-xs text-gray-500 mt-0.5">Atur komisi sesi PT dan penjualan membership — otomatis terhitung di Laporan Trakin.</p>
+                                </div>
+
+                                <div className="py-6 border-b border-gray-100 grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                                    <div className="md:col-span-4 pr-2">
+                                        <label className="text-xs font-bold text-gray-900">Komisi Sesi PT</label>
+                                        <p className="text-xs text-gray-400 mt-1 leading-relaxed">Trainer / Coach — per sesi selesai.</p>
+                                    </div>
+                                    <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div className="sm:col-span-2">
+                                            <div className="relative rounded-2xl border border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white transition-all overflow-hidden flex items-center px-3.5 py-2.5">
+                                                <span className="text-xs font-bold text-gray-400 mr-2 shrink-0">{form.data.commission_pt_type === 'percent' ? '%' : 'Rp'}</span>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max={form.data.commission_pt_type === 'percent' ? 100 : undefined}
+                                                    value={form.data.commission_pt_rate}
+                                                    onChange={(e) => form.setData('commission_pt_rate', e.target.value)}
+                                                    placeholder={form.data.commission_pt_type === 'percent' ? '45' : '50000'}
+                                                    className="w-full text-xs text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none font-medium"
+                                                />
+                                            </div>
+                                            <p className="text-[11px] text-gray-400 mt-1">Contoh: sesi Rp 100.000 × 45% → Rp 45.000</p>
+                                        </div>
+                                        <div>
+                                            <div className="relative rounded-2xl border border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white transition-all overflow-hidden flex items-center px-3.5 py-2.5">
+                                                <select
+                                                    value={form.data.commission_pt_type}
+                                                    onChange={(e) => form.setData('commission_pt_type', e.target.value)}
+                                                    className="w-full text-xs text-gray-900 bg-transparent focus:outline-none font-medium cursor-pointer"
+                                                >
+                                                    <option value="percent">Persen (%)</option>
+                                                    <option value="flat">Flat (Rp)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="pt-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                                    <div className="md:col-span-4 pr-2">
+                                        <label className="text-xs font-bold text-gray-900">Komisi Penjualan Membership</label>
+                                        <p className="text-xs text-gray-400 mt-1 leading-relaxed">Sales / Front Desk — per closing paket. Dihitung saat transaksi paid.</p>
+                                    </div>
+                                    <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div className="sm:col-span-2">
+                                            <div className="relative rounded-2xl border border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white transition-all overflow-hidden flex items-center px-3.5 py-2.5">
+                                                <span className="text-xs font-bold text-gray-400 mr-2 shrink-0">{form.data.commission_membership_type === 'percent' ? '%' : 'Rp'}</span>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max={form.data.commission_membership_type === 'percent' ? 100 : undefined}
+                                                    value={form.data.commission_membership_rate}
+                                                    onChange={(e) => form.setData('commission_membership_rate', e.target.value)}
+                                                    placeholder={form.data.commission_membership_type === 'percent' ? '10' : '50000'}
+                                                    className="w-full text-xs text-gray-900 placeholder-gray-400 bg-transparent focus:outline-none font-medium"
+                                                />
+                                            </div>
+                                            <p className="text-[11px] text-gray-400 mt-1">Contoh: paket Rp 1.000.000 → flat Rp 50.000</p>
+                                        </div>
+                                        <div>
+                                            <div className="relative rounded-2xl border border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 bg-white transition-all overflow-hidden flex items-center px-3.5 py-2.5">
+                                                <select
+                                                    value={form.data.commission_membership_type}
+                                                    onChange={(e) => form.setData('commission_membership_type', e.target.value)}
+                                                    className="w-full text-xs text-gray-900 bg-transparent focus:outline-none font-medium cursor-pointer"
+                                                >
+                                                    <option value="percent">Persen (%)</option>
+                                                    <option value="flat">Flat (Rp)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* TAB 4: POS RECEIPT */}
                         {activeTab === 'pos' && (
-                            <div>
+                            <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-2xs">
                                 {/* Section Subheader */}
                                 <div className="pb-6 border-b border-gray-100">
                                     <h2 className="text-base font-bold text-gray-900">Struk Transaksi POS</h2>

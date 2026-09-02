@@ -78,6 +78,10 @@ class GymSettingsController extends Controller
             'pos_receipt_footer_title' => 'TERIMA KASIH',
             'pos_receipt_footer_note' => 'Selamat Berolahraga & Stay Fit!',
             'pos_receipt_show_tax' => '1',
+            'commission_pt_rate' => '45',
+            'commission_pt_type' => 'percent',
+            'commission_membership_rate' => '50000',
+            'commission_membership_type' => 'flat',
             // Dev Mode Feature Toggles
             'feature_class_booking' => '1',
             'feature_pt_booking' => '1',
@@ -230,6 +234,10 @@ class GymSettingsController extends Controller
             'pos_receipt_footer_title' => 'nullable|string|max:255',
             'pos_receipt_footer_note' => 'nullable|string|max:255',
             'pos_receipt_show_tax' => 'nullable|in:0,1',
+            'commission_pt_rate' => 'nullable|numeric|min:0|max:100',
+            'commission_pt_type' => 'nullable|in:percent,flat',
+            'commission_membership_rate' => 'nullable|numeric|min:0',
+            'commission_membership_type' => 'nullable|in:percent,flat',
             'owner_name' => 'required|string|max:255',
             'owner_phone' => 'nullable|string|max:100',
             'owner_photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:3072',
@@ -300,6 +308,15 @@ class GymSettingsController extends Controller
                 Setting::updateOrCreate(
                     ['key' => $key],
                     ['value' => (string) ($validated[$key] ?? ''), 'group' => 'pos_receipt']
+                );
+            }
+        }
+
+        foreach (['commission_pt_rate', 'commission_pt_type', 'commission_membership_rate', 'commission_membership_type'] as $key) {
+            if (array_key_exists($key, $validated)) {
+                Setting::updateOrCreate(
+                    ['key' => $key],
+                    ['value' => (string) ($validated[$key] ?? ''), 'group' => 'commission']
                 );
             }
         }
