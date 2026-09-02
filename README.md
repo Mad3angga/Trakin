@@ -30,15 +30,15 @@ Mendukung **Web Admin** (Owner, Manager, Front Desk, Sales, Trainer) dan **Membe
 
 ## Fitur Utama
 
-- **Member & Membership** — registrasi member baru, paket Bronze/Silver/Gold, komisi penjualan (hanya Staff, Member tidak muncul), perpanjangan & freeze membership, QR code check-in
-- **Kelas & PT** — jadwal kelas, booking, manajemen trainer (foto portrait dihapus → default), sesi PT & subscription
+- **Member & Membership** — registrasi member baru, paket Bronze/Silver/Gold, komisi penjualan, perpanjangan & freeze membership, QR code check-in
+- **Kelas & PT** — jadwal kelas, booking, manajemen trainer, sesi PT & subscription
 - **Kehadiran** — kiosk QR, check-in/out, histori, streak mingguan
-- **POS & Inventory** — kasir ritel & paket, kategori produk, stok & mutasi, low-stock alert (tanpa icon), receipt 80mm dengan preview live
+- **POS & Inventory** — kasir ritel & paket, kategori produk, stok & mutasi, receipt 80mm dengan preview live
 - **Pengeluaran & Laporan** — expense, laporan finansial Harian/Mingguan/Bulanan
-- **Dashboard Owner** — ringkasan member aktif, segera expired, stock barang (tanpa icon), grafik & AI assistant
-- **Pengaturan Gym** — Details/System/Receipt hanya untuk **Owner & Manager**, Account untuk semua role (label tanpa "Owner"), foto profil bisa dihapus (icon trash bulat merah → revert ke inisial default `BG-blue-50`)
-- **Autentikasi** — login dengan background `login.avif` (overlay putih 75% mobile & desktop sama), mobile default akun **Member**, desktop default **Owner**, demo pill 5 role
-- **Mobile** — Capacitor 8, `npm run cap:sync`, background login sama mobile/desktop
+- **Dashboard Owner** — ringkasan member aktif, grafik & AI assistant
+- **Pengaturan Gym** — Details/System/Receipt untuk Owner & Manager, Account untuk semua role, foto profil bisa dihapus
+- **Autentikasi** — login dengan background `login.avif`, demo pill 5 role
+- **Mobile** — Capacitor 8, `npm run cap:sync`
 
 ---
 
@@ -113,12 +113,10 @@ Seeder `DatabaseSeeder` membuat 7 user:
 | **Owner** | `owner@trakin.com` | `password` | Semua modul + Settings Details/System/Receipt + Broadcast/Dev |
 | **Manager** | `manager@trakin.com` | `password` | Hampir semua (kecuali kelola user Owner-only) |
 | **Front Desk** | `frontdesk@trakin.com` | `password` | Member, Attendance, POS, Kiosk |
-| **Sales** | `sales@trakin.com` | `password` | Member (komisi), POS — baru diperbaiki password-nya |
-| **Trainer** | `alex@trakin.com` | `password` | Kelas, Trainer, Sesi PT — password di Details (bukan Account) |
+| **Sales** | `sales@trakin.com` | `password` | Member (komisi), POS |
+| **Trainer** | `alex@trakin.com` | `password` | Kelas, Trainer, Sesi PT |
 | **Trainer 2** | `sarah@trakin.com` | `password` | sama |
-| **Member** | `member@trakin.com` | `password` | Member Portal (mobile default) |
-
-> Mobile (`<768px`) default form terisi `member@trakin.com`, desktop default `owner@trakin.com`.
+| **Member** | `member@trakin.com` | `password` | Member Portal |
 
 ---
 
@@ -164,14 +162,14 @@ resources/
   js/
     Pages/Admin/     # Dashboard, Members, POS, Inventory, Settings, Users, ...
     Pages/Member/    # Dashboard, Classes, Profile, Trainers, History
-    Components/Auth/ # MobileLoginView, DesktopLoginView (bg login.avif)
+    Components/Auth/ # MobileLoginView, DesktopLoginView
     Layouts/         # AdminLayout, MemberLayout
-  css/app.css        # @import "tailwindcss"; @theme { --font-sans: Inter }
+  css/app.css
 public/
-  images/login.avif  # background login (215KB) — dipakai mobile & desktop overlay putih 75%
-  uploads/           # trainers (2 file aktif), classes (2), settings (logo)
-storage/app/public/uploads/ # profiles (1 aktif), settings (1 aktif)
-routes/web.php       # role middleware: Owner|Manager|Front Desk|Sales|Trainer|Member
+  images/login.avif
+  uploads/           # trainers, classes, settings
+storage/app/public/uploads/ # profiles, settings
+routes/web.php
 database/seeders/    # DatabaseSeeder & RealWorldTestSeeder
 ```
 
@@ -188,9 +186,8 @@ npx cap open android # buka Android Studio
 npx cap open ios     # buka Xcode
 ```
 
-- `capacitor.config.json` → `appId: com.trakin.app`, `webDir: public`, `cleartext: false`
-- Background login `public/images/login.avif` otomatis ikut ter-bundle ke `android/app/src/main/assets/public/` & `ios/App/App/public/`
-- Foto profil di-handle via `POST /profile/photo`, `DELETE /profile/photo`, `DELETE /settings/photo` (semua revert ke `photo = null`)
+- `capacitor.config.json` → `appId: com.trakin.app`, `webDir: public`
+- Background login `public/images/login.avif` otomatis ikut ter-bundle
 
 ---
 
