@@ -33,10 +33,9 @@ Mendukung **Web Admin** (Owner, Manager, Front Desk, Sales, Trainer) dan **Membe
 - **Member & Membership** — registrasi member baru, paket Bronze/Silver/Gold, komisi penjualan, perpanjangan & freeze membership, QR code check-in
 - **Kelas & PT** — jadwal kelas, booking, manajemen trainer, sesi PT & subscription
 - **Kehadiran** — kiosk QR, check-in/out, histori, streak mingguan
-- **POS & Inventory** — kasir ritel & paket, kategori produk, stok & mutasi, receipt 80mm dengan preview live
+- **POS & Inventory** — kasir ritel & paket, kategori produk, stok & mutasi, kustomisasi receipt 
 - **Pengeluaran & Laporan** — expense, laporan finansial Harian/Mingguan/Bulanan
 - **Dashboard Owner** — ringkasan member aktif, grafik & AI assistant
-- **Pengaturan Gym** — Details/System/Receipt untuk Owner & Manager, Account untuk semua role, foto profil bisa dihapus
 
 ---
 
@@ -46,7 +45,7 @@ Mendukung **Web Admin** (Owner, Manager, Front Desk, Sales, Trainer) dan **Membe
 |-------|-----------|
 | **Backend** | Laravel 13, PHP 8.3, Sanctum, Spatie Permission 8, Ziggy |
 | **Frontend** | React 19, Inertia 3, Vite 8, Tailwind 4, Recharts, React Hook Form + Zod, Lucide |
-| **Mobile** | Capacitor 8 (Android, iOS), Push & Local Notifications |
+| **Mobile** | Capacitor 8 (Android, iOS) |
 | **Database** | PostgreSQL 15+ |
 | **Tooling** | Vite, Laravel Pail, Pint, PHPUnit 12 |
 
@@ -115,38 +114,6 @@ Seeder `DatabaseSeeder` membuat 7 user:
 | **Trainer** | `alex@trakin.com` | `password` | Kelas, Trainer, Sesi PT |
 | **Trainer 2** | `sarah@trakin.com` | `password` | sama |
 | **Member** | `member@trakin.com` | `password` | Member Portal |
-
----
-
-## Environment Variables
-
-Salin dari `.env.example` — **jangan commit `.env` atau `storage/app/firebase/service-account.json`** (sudah di `.gitignore`):
-
-```env
-APP_NAME=Trakin
-APP_ENV=local
-APP_KEY=base64:...           # php artisan key:generate
-APP_DEBUG=true
-APP_URL=http://127.0.0.1:8000
-
-DB_CONNECTION=pgsql
-DB_HOST=127.0.0.1
-DB_PORT=5432
-DB_DATABASE=trakin_gym
-DB_USERNAME=apple
-DB_PASSWORD=                # isi di production
-
-GEMINI_API_KEY=             # Google AI Studio — kosongkan di repo, isi via env
-FCM_SERVER_KEY=
-FIREBASE_PROJECT_ID=
-FIREBASE_SERVICE_ACCOUNT=storage/app/firebase/service-account.json
-# file json JANGAN commit, taruh manual di storage/app/firebase/
-```
-
-Production checklist:
-- `APP_ENV=production`, `APP_DEBUG=false`, `LOG_LEVEL=warning`
-- `SESSION_SECURE_COOKIE=true`, `SESSION_SAME_SITE=lax` (HTTPS)
-- `php artisan config:cache && php artisan route:cache && php artisan view:cache`
 
 ---
 
