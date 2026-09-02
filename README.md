@@ -177,25 +177,6 @@ database/seeders/    # DatabaseSeeder & RealWorldTestSeeder
 
 ---
 
-## Roles & Hak Akses
-
-| Modul | Owner | Manager | Front Desk | Sales | Trainer | Member |
-|-------|:-----:|:-------:|:----------:|:-----:|:-------:|:------:|
-| Dashboard & Laporan | ✅ | ✅ | — | — | — | — |
-| Member & Paket | ✅ | ✅ | ✅ | ✅ | — | — |
-| Settings Details/System/Receipt | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Settings Account (foto, nama, password + trash hapus foto) | ✅ | ✅ | ✅ | ✅ | ✅* | ✅ |
-| POS & Inventory | ✅ | ✅ | ✅ | ✅ | — | — |
-| Kelas & Trainer | ✅ | ✅ | — | — | ✅ | — |
-| Kiosk & Absensi | ✅ | ✅ | ✅ | ✅ | ✅ | — |
-| Member Portal | — | — | — | — | — | ✅ |
-
-`* Trainer ubah password di Details, bukan Account. Icon trash merah bulat `w-7 h-7 bg-red-500` di semua avatar untuk hapus foto → revert ke inisial `BG-blue-50`.*
-
-`Komisi Penjualan` saat registrasi member hanya menampilkan **Staff** (`Owner, Manager, Sales, Front Desk, Trainer`) dengan label `Nama — Role`, **Member tidak pernah muncul**.
-
----
-
 ## Build & Mobile (Capacitor)
 
 ```bash
