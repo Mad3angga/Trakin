@@ -17,8 +17,8 @@ class ReportController extends Controller
 {
     public function index(Request $request)
     {
-        $startDate = $request->input('start_date', now()->subDays(30)->toDateString());
-        $endDate = $request->input('end_date', now()->toDateString());
+        $startDate = $request->input('start_date', now()->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', now()->endOfMonth()->toDateString());
         $selectedYear = (int) $request->input('year', now()->year);
         $selectedMonth = (int) $request->input('month', now()->month);
 
