@@ -116,7 +116,7 @@ export default function MemberClasses({ schedules = [], member }) {
 
                                         {/* Overlay Title & Start Time */}
                                         <div className="absolute bottom-3.5 left-4 right-4 text-white">
-                                            <h3 className="text-lg sm:text-xl font-black tracking-tight leading-tight drop-shadow-xs">
+                                            <h3 className="text-lg sm:text-xl font-bold tracking-tight leading-tight drop-shadow-xs">
                                                 {sch.gym_class?.name}
                                             </h3>
                                             <p className="text-xs font-medium text-white/95 mt-0.5 drop-shadow-xs">
@@ -250,7 +250,7 @@ export default function MemberClasses({ schedules = [], member }) {
                                     {/* Title & Category Pill (Matching Image 1) */}
                                     <div>
                                         <div className="flex items-center gap-3 flex-wrap">
-                                            <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                                            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
                                                 {selectedSchedule.gym_class?.name}
                                             </h2>
                                             <span className="bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold px-3.5 py-1 rounded-full shadow-2xs">
