@@ -24,7 +24,7 @@
 
 Trakin adalah sistem manajemen gym terintegrasi untuk operasional harian: pendaftaran member & paket membership, absensi QR kiosk, jadwal kelas & sesi PT, kasir POS & inventory, pengeluaran, laporan, dashboard analitik, serta AI Chat Advisor (Gemini) untuk owner.
 
-Mendukung **Web Admin** (Owner, Manager, Front Desk, Sales, Trainer) dan **Member Portal** (mobile-friendly + Capacitor Android/iOS dengan push notification & local notification).
+Mendukung **Web Admin** (Owner, Manager, Front Desk, Sales, Trainer) dan **Member Portal** (mobile-friendly + Capacitor Android/iOS).
 
 ---
 
@@ -152,7 +152,6 @@ npx cap open ios     # buka Xcode
 ```
 
 - `capacitor.config.json` → `appId: com.trakin.app`, `webDir: public`
-- Background login `public/images/login.avif` otomatis ikut ter-bundle
 
 ---
 
