@@ -153,12 +153,14 @@ export default function PtSessionsIndex({ ptSessions, allCalendarSessions, train
                             <p className="text-xs text-gray-500 mt-0.5">Semangat melatih client hari ini!</p>
                         </div>
                     </div>
-                    <Link
-                        href="/personal-trainer/create"
-                        className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors text-center cursor-pointer shadow-xs"
-                    >
-                        Tambah Sesi PT
-                    </Link>
+                    {!isTrainerRole && (
+                        <Link
+                            href="/personal-trainer/create"
+                            className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors text-center cursor-pointer shadow-xs"
+                        >
+                            Tambah Sesi PT
+                        </Link>
+                    )}
                 </div>
 
                 {/* Main Interactive Month Calendar Section */}

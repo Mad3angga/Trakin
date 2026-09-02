@@ -71,11 +71,11 @@ export default function AdminLayout({ children, title, hideHeader = false, hideB
             name: 'Manajemen PT',
             id: 'trainer',
             icon: Dumbbell,
-            roles: ['Owner', 'Manager', 'Front Desk', 'Sales', 'Trainer'],
+            roles: ['Owner', 'Manager', 'Front Desk', 'Sales'],
             hasChildren: true,
             children: [
                 { name: 'Daftar Trainer', href: '/trainers', icon: Dumbbell, roles: ['Owner', 'Manager'] },
-                { name: 'Jadwal & Sesi PT', href: '/personal-trainer', icon: UserCheck, roles: ['Owner', 'Manager', 'Front Desk', 'Sales', 'Trainer'], feature: 'feature_pt_booking' },
+                { name: 'Jadwal & Sesi PT', href: '/personal-trainer', icon: UserCheck, roles: ['Owner', 'Manager', 'Front Desk', 'Sales'], feature: 'feature_pt_booking' },
             ]
         },
         { name: 'Inventori', href: '/inventory', icon: Package, roles: ['Owner', 'Manager'] },

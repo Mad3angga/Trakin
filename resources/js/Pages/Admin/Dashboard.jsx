@@ -179,12 +179,7 @@ export default function Dashboard({ isTrainer, trainer, members = [], calendarEv
                                 <p className="text-xs text-gray-500 mt-0.5">Semangat melatih client hari ini!</p>
                             </div>
                         </div>
-                        <Link
-                            href="/personal-trainer/create"
-                            className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors text-center cursor-pointer shadow-xs"
-                        >
-                            Tambah Sesi PT
-                        </Link>
+
                     </div>
 
                     {/* Main Interactive Month Calendar Section */}
@@ -344,16 +339,7 @@ export default function Dashboard({ isTrainer, trainer, members = [], calendarEv
                                     {selectedDate ? `Menampilkan sesi latihan khusus tanggal ${selectedDate}` : 'Menampilkan seluruh rincian sesi Personal Trainer & Kelas Gym'}
                                 </p>
                             </div>
-                            {selectedDate && (
-                                <button
-                                    type="button"
-                                    onClick={() => openQuickAddModal(selectedDate)}
-                                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
-                                >
-                                    <Plus className="w-3.5 h-3.5" />
-                                    Tambah Sesi {selectedDate}
-                                </button>
-                            )}
+
                         </div>
 
                         <div className="overflow-x-auto">
