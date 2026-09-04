@@ -102,6 +102,8 @@ class ReportController extends Controller
             default => "strftime('%Y', check_in_time)",
         };
 
+        $periodVisitData = [];
+
         if ($diffInDays <= 35) {
             // Group by Day
             $dailySales = Sale::selectRaw("DATE(created_at) as date, SUM(total_amount) as total")
@@ -116,6 +118,11 @@ class ReportController extends Controller
                 ->groupBy('date')
                 ->pluck('total', 'date');
 
+            $dailyAttendance = Attendance::selectRaw("DATE(check_in_time) as date, COUNT(*) as count")
+                ->whereBetween('check_in_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                ->groupBy('date')
+                ->pluck('count', 'date');
+
             for ($date = clone $periodStart; $date->lte($periodEnd); $date->addDay()) {
                 $dateStr = $date->toDateString();
                 $posVal = (float) ($dailySales[$dateStr] ?? 0);
@@ -126,6 +133,12 @@ class ReportController extends Controller
                     'POS Kasir' => $posVal,
                     'Membership' => $memVal,
                     'Total' => $posVal + $memVal,
+                ];
+
+                $periodVisitData[] = [
+                    'label' => $date->format('d M'),
+                    'full_label' => $date->format('d M Y'),
+                    'count' => (int) ($dailyAttendance[$dateStr] ?? 0),
                 ];
             }
         } elseif ($diffInDays <= 180) {
@@ -140,6 +153,15 @@ class ReportController extends Controller
                 ->where('status', 'paid')
                 ->groupBy('wk')->pluck('total', 'wk');
 
+            $attWeekSql = match ($driver) {
+                'pgsql' => "to_char(check_in_time, 'YYYY-IW')",
+                'mysql', 'mariadb' => "DATE_FORMAT(check_in_time, '%Y-%v')",
+                default => "strftime('%Y-%W', check_in_time)",
+            };
+            $weeklyAttendance = Attendance::selectRaw("{$attWeekSql} as wk, COUNT(*) as count")
+                ->whereBetween('check_in_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                ->groupBy('wk')->pluck('count', 'wk');
+
             $curr = clone $periodStart;
             while ($curr->lte($periodEnd)) {
                 $wkKey = $curr->format('Y-W');
@@ -152,6 +174,13 @@ class ReportController extends Controller
                     'Membership' => $memVal,
                     'Total' => $posVal + $memVal,
                 ];
+
+                $periodVisitData[] = [
+                    'label' => 'M' . $curr->format('W (d/m)'),
+                    'full_label' => 'Minggu ' . $curr->format('W (d M Y)'),
+                    'count' => (int) ($weeklyAttendance[$wkKey] ?? 0),
+                ];
+
                 $curr->addWeek();
             }
         } else {
@@ -166,6 +195,15 @@ class ReportController extends Controller
                 ->where('status', 'paid')
                 ->groupBy('ym')->pluck('total', 'ym');
 
+            $attMonthSql = match ($driver) {
+                'pgsql' => "to_char(check_in_time, 'YYYY-MM')",
+                'mysql', 'mariadb' => "DATE_FORMAT(check_in_time, '%Y-%m')",
+                default => "strftime('%Y-%m', check_in_time)",
+            };
+            $monthlyAtt = Attendance::selectRaw("{$attMonthSql} as ym, COUNT(*) as count")
+                ->whereBetween('check_in_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                ->groupBy('ym')->pluck('count', 'ym');
+
             $curr = clone $periodStart->startOfMonth();
             while ($curr->lte($periodEnd)) {
                 $ymKey = $curr->format('Y-m');
@@ -178,6 +216,13 @@ class ReportController extends Controller
                     'Membership' => $memVal,
                     'Total' => $posVal + $memVal,
                 ];
+
+                $periodVisitData[] = [
+                    'label' => $curr->format('M Y'),
+                    'full_label' => $curr->format('F Y'),
+                    'count' => (int) ($monthlyAtt[$ymKey] ?? 0),
+                ];
+
                 $curr->addMonth();
             }
         }
@@ -264,7 +309,11 @@ class ReportController extends Controller
         $memType = $commissionSettings['commission_membership_type'] ?? 'flat';
 
         // PT subscriptions in period
-        $ptSubscriptions = PtSubscription::with(['trainer:id,full_name', 'member:id,full_name'])
+        $ptSubscriptions = PtSubscription::with([
+            'trainer:id,full_name,photo,specialization',
+            'member:id,full_name',
+            'package:id,name'
+        ])
             ->whereBetween('created_at', [$startDate.' 00:00:00', $endDate.' 23:59:59'])
             ->where('payment_status', 'paid')
             ->latest()
@@ -287,25 +336,54 @@ class ReportController extends Controller
             $ptCommissionTotal += $comm;
             $tid = $sub->trainer_id ?? 'unknown';
             $tname = $sub->trainer->full_name ?? 'Tanpa Trainer';
+            $tphoto = $sub->trainer->photo ?? null;
+            $tspec = $sub->trainer->specialization ?? 'Personal Trainer';
             if (!isset($ptCommissionByTrainer[$tid])) {
-                $ptCommissionByTrainer[$tid] = ['trainer_id'=>$tid, 'trainer_name'=>$tname, 'count'=>0, 'omset'=>0, 'komisi'=>0];
+                $ptCommissionByTrainer[$tid] = [
+                    'trainer_id' => $tid,
+                    'trainer_name' => $tname,
+                    'trainer_photo' => $tphoto,
+                    'specialization' => $tspec,
+                    'count' => 0,
+                    'omset' => 0,
+                    'komisi' => 0
+                ];
             }
             $ptCommissionByTrainer[$tid]['count'] += 1;
             $ptCommissionByTrainer[$tid]['omset'] += (float) $sub->price_paid;
             $ptCommissionByTrainer[$tid]['komisi'] += $comm;
             $ptCommissionList[] = [
-                'id'=>$sub->id,
-                'member_name'=>$sub->member->full_name ?? '-',
-                'trainer_name'=>$tname,
-                'price_paid'=>(float) $sub->price_paid,
-                'komisi'=> (float) $comm,
-                'date'=> $sub->created_at->toDateString(),
-                'total_sessions'=> $sub->total_sessions,
+                'id' => $sub->id,
+                'transaction_code' => '#PT-' . str_pad($sub->id, 5, '0', STR_PAD_LEFT),
+                'member_name' => $sub->member->full_name ?? '-',
+                'trainer_name' => $tname,
+                'trainer_photo' => $tphoto,
+                'staff_name' => $tname,
+                'staff_photo' => $tphoto,
+                'package_name' => $sub->package->name ?? ($sub->total_sessions ? "{$sub->total_sessions} Sesi PT" : 'Paket PT'),
+                'price_paid' => (float) $sub->price_paid,
+                'amount' => (float) $sub->price_paid,
+                'komisi' => (float) $comm,
+                'date' => $sub->created_at->format('d/m/Y'),
+                'raw_date' => $sub->created_at->toDateString(),
+                'total_sessions' => $sub->total_sessions,
+                'unit_count' => $sub->total_sessions ?? 1,
+                'unit_label' => ($sub->total_sessions ?? 1) . ' Sesi',
+                'rate_label' => $ptRate . ($ptType === 'percent' ? '%' : ' flat'),
+                'payment_method' => $sub->payment_method ? ucfirst($sub->payment_method) : 'Cash',
+                'type' => 'pt',
+                'type_label' => 'Trainer PT',
+                'status' => 'Success',
             ];
         }
 
         // Membership transactions in period — komisi diambil dari pilihan komisi saat registrasi (sold_by_id di subscription), bukan dari akun login (created_by)
-        $memTransactions = MembershipTransaction::with(['member:id,full_name', 'subscription.soldBy:id,name', 'creator:id,name'])
+        $memTransactions = MembershipTransaction::with([
+            'member:id,full_name',
+            'subscription.soldBy:id,name,photo',
+            'subscription.package:id,name',
+            'creator:id,name,photo'
+        ])
             ->whereBetween('created_at', [$startDate.' 00:00:00', $endDate.' 23:59:59'])
             ->where('status', 'paid')
             ->latest()
@@ -320,22 +398,47 @@ class ReportController extends Controller
             $soldBy = $tx->subscription?->soldBy;
             $uid = $soldBy?->id ?? $tx->subscription?->sold_by_id ?? $tx->created_by ?? 'unknown';
             $uname = $soldBy?->name ?? $tx->creator?->name ?? 'Tanpa Komisi';
+            $uphoto = $soldBy?->photo ?? $tx->creator?->photo ?? null;
             if (!isset($memCommissionBySales[$uid])) {
-                $memCommissionBySales[$uid] = ['user_id'=>$uid, 'user_name'=>$uname, 'count'=>0, 'omset'=>0, 'komisi'=>0];
+                $memCommissionBySales[$uid] = [
+                    'user_id' => $uid,
+                    'user_name' => $uname,
+                    'user_photo' => $uphoto,
+                    'count' => 0,
+                    'omset' => 0,
+                    'komisi' => 0
+                ];
             }
             $memCommissionBySales[$uid]['count'] += 1;
             $memCommissionBySales[$uid]['omset'] += (float) $tx->amount;
             $memCommissionBySales[$uid]['komisi'] += $comm;
             $memCommissionList[] = [
-                'id'=>$tx->id,
-                'transaction_code'=>$tx->transaction_code,
-                'member_name'=>$tx->member->full_name ?? '-',
-                'sales_name'=>$uname,
-                'amount'=>(float) $tx->amount,
-                'komisi'=> (float) $comm,
-                'date'=> $tx->created_at->toDateString(),
+                'id' => $tx->id,
+                'transaction_code' => $tx->transaction_code,
+                'member_name' => $tx->member->full_name ?? '-',
+                'sales_name' => $uname,
+                'sales_photo' => $uphoto,
+                'staff_name' => $uname,
+                'staff_photo' => $uphoto,
+                'package_name' => $tx->subscription?->package?->name ?? 'Paket Gym',
+                'payment_method' => $tx->payment_method ? ucfirst($tx->payment_method) : 'Cash',
+                'price_paid' => (float) $tx->amount,
+                'amount' => (float) $tx->amount,
+                'komisi' => (float) $comm,
+                'date' => $tx->created_at->format('d/m/Y'),
+                'raw_date' => $tx->created_at->toDateString(),
+                'total_sessions' => 1,
+                'unit_count' => 1,
+                'unit_label' => '1 Closing',
+                'rate_label' => $memRate . ($memType === 'percent' ? '%' : ' flat'),
+                'type' => 'membership',
+                'type_label' => 'Sales Membership',
+                'status' => 'Success',
             ];
         }
+
+        $allCommissionList = array_merge($ptCommissionList, $memCommissionList);
+        usort($allCommissionList, fn($a, $b) => strcmp($b['raw_date'], $a['raw_date']));
 
         $commissionSummary = [
             'pt_rate'=> $ptRate,
@@ -364,9 +467,11 @@ class ReportController extends Controller
             'ptCommissionList' => $ptCommissionList,
             'memCommissionBySales' => array_values($memCommissionBySales),
             'memCommissionList' => $memCommissionList,
+            'allCommissionList' => $allCommissionList,
             'sales' => $sales,
             'membershipTransactions' => $membershipTransactions,
             'chartData' => $chartData,
+            'periodVisitData' => $periodVisitData,
             'weeklyVisitData' => $weeklyVisitData,
             'monthlyVisitData' => $monthlyVisitData,
             'yearlyVisitData' => $yearlyVisitData,

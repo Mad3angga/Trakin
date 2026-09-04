@@ -209,7 +209,7 @@ export default function AdminLayout({ children, title, hideHeader = false, hideB
                                         }
                                         const isReportActive = (href) => {
                                             const search = typeof window !== 'undefined' ? window.location.search : '';
-                                            const isKunjungan = search.includes('tab=kunjungan');
+                                            const isKunjungan = search.includes('tab=kunjungan') || search.includes('tab=komisi');
                                             if (href.includes('tab=kunjungan')) return currentPath === '/reports' && isKunjungan;
                                             if (href === '/reports') return currentPath === '/reports' && !isKunjungan;
                                             return currentPath === href;

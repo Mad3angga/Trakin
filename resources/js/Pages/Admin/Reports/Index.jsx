@@ -1,30 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Pagination';
+import CommissionReport from './CommissionReport';
 import { Download, Printer, Filter, DollarSign, CreditCard, ShoppingCart, TrendingUp, Calendar, ArrowUpRight, QrCode, BarChart3, ChevronDown, Wallet, Receipt } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 
-export default function ReportsIndex({ summary, commissionSummary = {}, ptCommissionByTrainer = [], ptCommissionList = [], memCommissionBySales = [], memCommissionList = [], sales, membershipTransactions, chartData, weeklyVisitData = [], monthlyVisitData = [], yearlyVisitData = [], filters }) {
+export default function ReportsIndex({ summary, commissionSummary = {}, ptCommissionByTrainer = [], ptCommissionList = [], memCommissionBySales = [], memCommissionList = [], allCommissionList = [], sales, membershipTransactions, chartData, periodVisitData = [], weeklyVisitData = [], monthlyVisitData = [], yearlyVisitData = [], filters }) {
     const [startDate, setStartDate] = useState(filters.start_date);
     const [endDate, setEndDate] = useState(filters.end_date);
     const [selectedYear, setSelectedYear] = useState(filters.year || new Date().getFullYear());
     const [selectedMonth, setSelectedMonth] = useState(filters.month || (new Date().getMonth() + 1));
-    const isTrakinReport = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'kunjungan';
+
+    const yearOptions = useMemo(() => {
+        const currentYear = new Date().getFullYear();
+        const start = filters?.project_start_year ? Math.min(Number(filters.project_start_year), currentYear) : currentYear - 2;
+        const years = [];
+        for (let y = currentYear + 1; y >= start; y--) {
+            years.push(y);
+        }
+        return years;
+    }, [filters?.project_start_year]);
+    const isTrakinReport = typeof window !== 'undefined' && (
+        new URLSearchParams(window.location.search).get('tab') === 'kunjungan' ||
+        new URLSearchParams(window.location.search).get('tab') === 'komisi'
+    );
     const [reportType, setReportType] = useState(() => {
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
-            if (params.get('tab') === 'kunjungan') return 'kunjungan';
+            const tab = params.get('tab');
+            if (tab === 'kunjungan') return 'kunjungan';
+            if (tab === 'komisi') return 'komisi';
         }
         return 'all';
     }); // 'all', 'membership', 'kasir' | 'kunjungan', 'komisi'
     const [visitPeriod, setVisitPeriod] = useState('bulanan'); // 'bulanan', 'tahunan'
     const [isPresetDropdownOpen, setIsPresetDropdownOpen] = useState(false);
-    const [commissionDetail, setCommissionDetail] = useState(null);
 
     const handleFilter = (e) => {
         e.preventDefault();
-        router.get('/reports', { start_date: startDate, end_date: endDate, year: selectedYear }, { preserveState: true });
+        const queryParams = { start_date: startDate, end_date: endDate, year: selectedYear };
+        if (isTrakinReport) {
+            queryParams.tab = reportType === 'komisi' ? 'komisi' : 'kunjungan';
+        }
+        router.get('/reports', queryParams, { preserveState: true });
     };
 
     const handleQuickPreset = (type) => {
@@ -45,12 +64,20 @@ export default function ReportsIndex({ summary, commissionSummary = {}, ptCommis
 
         setStartDate(s);
         setEndDate(e);
-        router.get('/reports', { start_date: s, end_date: e, year: selectedYear }, { preserveState: true });
+        const queryParams = { start_date: s, end_date: e, year: selectedYear };
+        if (isTrakinReport) {
+            queryParams.tab = reportType === 'komisi' ? 'komisi' : 'kunjungan';
+        }
+        router.get('/reports', queryParams, { preserveState: true });
     };
 
     const handleYearChange = (yr) => {
         setSelectedYear(yr);
-        router.get('/reports', { start_date: startDate, end_date: endDate, year: yr }, { preserveState: true });
+        const queryParams = { start_date: startDate, end_date: endDate, year: yr };
+        if (isTrakinReport) {
+            queryParams.tab = reportType === 'komisi' ? 'komisi' : 'kunjungan';
+        }
+        router.get('/reports', queryParams, { preserveState: true, preserveScroll: true });
     };
 
     const handlePrint = () => {
@@ -76,6 +103,42 @@ export default function ReportsIndex({ summary, commissionSummary = {}, ptCommis
             csvContent += "NO INVOICE,STAF KASIR,WAKTU TRANSAKSI,METODE BAYAR,TOTAL TRANSAKSI\n";
             (sales.data || []).forEach(s => {
                 csvContent += `"${s.invoice_number}","${s.cashier?.name || 'Staff POS'}","${s.created_at}","${s.payment_method.toUpperCase()}",${s.total_amount}\n`;
+            });
+        } else if (reportType === 'komisi') {
+            filename = `Laporan_Komisi_Trakin_${startDate}_sd_${endDate}.csv`;
+            csvContent += "LAPORAN REKAPITULASI KOMISI TRAKIN GYM\n";
+            csvContent += `Periode,${startDate} s/d ${endDate}\n`;
+            csvContent += `Rate Komisi PT,${commissionSummary.pt_rate}${commissionSummary.pt_type === 'percent' ? '%' : ' flat'}\n`;
+            csvContent += `Rate Komisi Membership,${commissionSummary.membership_rate}${commissionSummary.membership_type === 'percent' ? '%' : ' flat'}\n`;
+            csvContent += `Total Komisi PT,${commissionSummary.pt_total || 0}\n`;
+            csvContent += `Total Komisi Membership,${commissionSummary.membership_total || 0}\n`;
+            csvContent += `Grand Total Kewajiban Komisi,${commissionSummary.grand_total || 0}\n\n`;
+
+            csvContent += "REKAP KOMISI PT PER TRAINER\n";
+            csvContent += "NAMA TRAINER,JUMLAH PAKET,TOTAL OMSET PT,TOTAL KOMISI\n";
+            (ptCommissionByTrainer || []).forEach(row => {
+                csvContent += `"${row.trainer_name}",${row.count},${row.omset},${row.komisi}\n`;
+            });
+            csvContent += "\n";
+
+            csvContent += "REKAP KOMISI MEMBERSHIP PER SALES\n";
+            csvContent += "NAMA SALES,JUMLAH CLOSING,TOTAL OMSET MEMBERSHIP,TOTAL KOMISI\n";
+            (memCommissionBySales || []).forEach(row => {
+                csvContent += `"${row.user_name}",${row.count},${row.omset},${row.komisi}\n`;
+            });
+            csvContent += "\n";
+
+            csvContent += "RINCIAN TRANSAKSI KOMISI PT\n";
+            csvContent += "TANGGAL,TRAINER,MEMBER,PAKET/SESI,HARGA BAYAR,KOMISI\n";
+            (ptCommissionList || []).forEach(item => {
+                csvContent += `"${item.date}","${item.trainer_name}","${item.member_name}","${item.package_name || (item.total_sessions ? item.total_sessions + ' Sesi' : 'Paket PT')}",${item.price_paid},${item.komisi}\n`;
+            });
+            csvContent += "\n";
+
+            csvContent += "RINCIAN TRANSAKSI KOMISI MEMBERSHIP\n";
+            csvContent += "TANGGAL,KODE TRANSAKSI,SALES,MEMBER,PAKET GYM,NOMINAL,KOMISI\n";
+            (memCommissionList || []).forEach(item => {
+                csvContent += `"${item.date}","${item.transaction_code}","${item.sales_name}","${item.member_name}","${item.package_name || '-'}",${item.amount},${item.komisi}\n`;
             });
         } else {
             csvContent += "RINGKASAN KEUSANGAN TRAKIN GYM\n";
@@ -112,10 +175,10 @@ export default function ReportsIndex({ summary, commissionSummary = {}, ptCommis
         return val;
     };
 
-    // Active Visit Data based on visitPeriod
-    const activeVisitData = visitPeriod === 'bulanan'
-        ? monthlyVisitData.map(d => ({ label: d.month_name, full_label: `${d.month_name} ${d.year}`, count: d.count }))
-        : yearlyVisitData.map(d => ({ label: d.year, full_label: `Tahun ${d.year}`, count: d.count }));
+    // Active Visit Data based on selected date range (or fallback to monthly)
+    const activeVisitData = (periodVisitData && periodVisitData.length > 0)
+        ? periodVisitData
+        : (monthlyVisitData || []).map(d => ({ label: d.month_name, full_label: `${d.month_name} ${d.year}`, count: d.count }));
 
     const totalVisitCount = activeVisitData.reduce((acc, curr) => acc + curr.count, 0);
     const avgVisitCount = activeVisitData.length > 0 ? Math.round(totalVisitCount / activeVisitData.length) : 0;
@@ -169,14 +232,28 @@ export default function ReportsIndex({ summary, commissionSummary = {}, ptCommis
                             <div className="flex flex-wrap items-center bg-gray-100 p-1 rounded-lg gap-1">
                                 <button
                                     type="button"
-                                    onClick={() => setReportType('kunjungan')}
+                                    onClick={() => {
+                                        setReportType('kunjungan');
+                                        if (typeof window !== 'undefined') {
+                                            const url = new URL(window.location.href);
+                                            url.searchParams.set('tab', 'kunjungan');
+                                            window.history.replaceState({}, '', url);
+                                        }
+                                    }}
                                     className={`px-3.5 py-1.5 text-xs font-medium rounded-md transition-colors ${reportType === 'kunjungan' ? 'bg-white text-gray-900 shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
                                 >
                                     Laporan Kunjungan
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setReportType('komisi')}
+                                    onClick={() => {
+                                        setReportType('komisi');
+                                        if (typeof window !== 'undefined') {
+                                            const url = new URL(window.location.href);
+                                            url.searchParams.set('tab', 'komisi');
+                                            window.history.replaceState({}, '', url);
+                                        }
+                                    }}
                                     className={`px-3.5 py-1.5 text-xs font-medium rounded-md transition-colors ${reportType === 'komisi' ? 'bg-white text-gray-900 shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
                                 >
                                     Laporan Komisi
@@ -208,119 +285,80 @@ export default function ReportsIndex({ summary, commissionSummary = {}, ptCommis
                             </div>
                         )}
 
-                        {/* Pill-Style Date Filter for Financial Reports */}
-                        {['all', 'membership', 'kasir'].includes(reportType) && (
-                            <div className="flex flex-wrap items-center gap-2">
-                                {/* Periode Cepat Dropdown — sinkron dengan Pengeluaran */}
-                                <div className="relative">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsPresetDropdownOpen(!isPresetDropdownOpen)}
-                                        className={`inline-flex items-center gap-1.5 border rounded-full px-3.5 py-1.5 text-xs font-medium transition-all shadow-2xs ${isPresetDropdownOpen
-                                            ? 'bg-blue-50 border-blue-500 text-blue-700 font-semibold'
-                                            : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50'
-                                            }`}
-                                        title="Filter Periode Cepat"
-                                    >
-                                        <Filter className="w-3.5 h-3.5 text-gray-500" />
-                                        <span>Periode Cepat</span>
-                                        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isPresetDropdownOpen ? 'rotate-180' : ''}`} />
-                                    </button>
+                        {/* Pill-Style Date Filter - Identical across ALL report tabs */}
+                        <div className="flex flex-wrap items-center gap-2">
+                            {/* Periode Cepat Dropdown — sinkron dengan Pengeluaran */}
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsPresetDropdownOpen(!isPresetDropdownOpen)}
+                                    className={`inline-flex items-center gap-1.5 border rounded-full px-3.5 py-1.5 text-xs font-medium transition-all shadow-2xs ${isPresetDropdownOpen
+                                        ? 'bg-blue-50 border-blue-500 text-blue-700 font-semibold'
+                                        : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50'
+                                        }`}
+                                    title="Filter Periode Cepat"
+                                >
+                                    <Filter className="w-3.5 h-3.5 text-gray-500" />
+                                    <span>Periode Cepat</span>
+                                    <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isPresetDropdownOpen ? 'rotate-180' : ''}`} />
+                                </button>
 
-                                    {isPresetDropdownOpen && (
-                                        <>
-                                            <div
-                                                className="fixed inset-0 z-20"
-                                                onClick={() => setIsPresetDropdownOpen(false)}
-                                            />
-                                            <div className="absolute left-0 mt-1.5 w-44 bg-white border border-gray-200 rounded-xl shadow-lg z-30 py-1 text-xs">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => { handleQuickPreset('month'); setIsPresetDropdownOpen(false); }}
-                                                    className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 font-medium flex items-center justify-between"
-                                                >
-                                                    <span>Bulan Ini</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => { handleQuickPreset('30days'); setIsPresetDropdownOpen(false); }}
-                                                    className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 font-medium flex items-center justify-between"
-                                                >
-                                                    <span>30 Hari Terakhir</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => { handleQuickPreset('today'); setIsPresetDropdownOpen(false); }}
-                                                    className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 font-medium flex items-center justify-between"
-                                                >
-                                                    <span>Hari Ini</span>
-                                                </button>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
+                                {isPresetDropdownOpen && (
+                                    <>
+                                        <div
+                                            className="fixed inset-0 z-20"
+                                            onClick={() => setIsPresetDropdownOpen(false)}
+                                        />
+                                        <div className="absolute left-0 mt-1.5 w-44 bg-white border border-gray-200 rounded-xl shadow-lg z-30 py-1 text-xs">
+                                            <button
+                                                type="button"
+                                                onClick={() => { handleQuickPreset('month'); setIsPresetDropdownOpen(false); }}
+                                                className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 font-medium flex items-center justify-between"
+                                            >
+                                                <span>Bulan Ini</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => { handleQuickPreset('30days'); setIsPresetDropdownOpen(false); }}
+                                                className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 font-medium flex items-center justify-between"
+                                            >
+                                                <span>30 Hari Terakhir</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => { handleQuickPreset('today'); setIsPresetDropdownOpen(false); }}
+                                                className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 font-medium flex items-center justify-between"
+                                            >
+                                                <span>Hari Ini</span>
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
 
-                                <form onSubmit={handleFilter} className="flex flex-wrap items-center gap-2">
-                                    <div className="relative inline-flex items-center bg-white border border-gray-200 hover:border-gray-300 rounded-full px-3.5 py-1.5 shadow-2xs transition-all">
-                                        <span className="text-xs font-bold text-gray-900 mr-1.5">Tanggal:</span>
-                                        <input
-                                            type="date"
-                                            value={startDate}
-                                            onChange={(e) => setStartDate(e.target.value)}
-                                            className="bg-transparent text-xs text-gray-600 font-medium focus:outline-none cursor-pointer"
-                                        />
-                                        <span className="text-xs text-gray-400 mx-1">s/d</span>
-                                        <input
-                                            type="date"
-                                            value={endDate}
-                                            onChange={(e) => setEndDate(e.target.value)}
-                                            className="bg-transparent text-xs text-gray-600 font-medium focus:outline-none cursor-pointer"
-                                        />
-                                    </div>
-                                    <button type="submit" className="px-4 py-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold rounded-full shadow-2xs transition-colors">
-                                        Terapkan
-                                    </button>
-                                </form>
-                            </div>
-                        )}
-                        {reportType === 'komisi' && (
-                            <div className="flex flex-wrap items-center gap-2">
-                                <div className="relative">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsPresetDropdownOpen(!isPresetDropdownOpen)}
-                                        className={`inline-flex items-center gap-1.5 border rounded-full px-3.5 py-1.5 text-xs font-medium transition-all shadow-2xs ${isPresetDropdownOpen
-                                            ? 'bg-blue-50 border-blue-500 text-blue-700 font-semibold'
-                                            : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50'
-                                            }`}
-                                        title="Filter Periode Cepat"
-                                    >
-                                        <Filter className="w-3.5 h-3.5 text-gray-500" />
-                                        <span>Periode Cepat</span>
-                                        <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isPresetDropdownOpen ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {isPresetDropdownOpen && (
-                                        <>
-                                            <div className="fixed inset-0 z-20" onClick={() => setIsPresetDropdownOpen(false)} />
-                                            <div className="absolute left-0 mt-1.5 w-44 bg-white border border-gray-200 rounded-xl shadow-lg z-30 py-1 text-xs">
-                                                <button type="button" onClick={() => { handleQuickPreset('month'); setIsPresetDropdownOpen(false); }} className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 font-medium">Bulan Ini</button>
-                                                <button type="button" onClick={() => { handleQuickPreset('30days'); setIsPresetDropdownOpen(false); }} className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 font-medium">30 Hari Terakhir</button>
-                                                <button type="button" onClick={() => { handleQuickPreset('today'); setIsPresetDropdownOpen(false); }} className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-gray-700 font-medium">Hari Ini</button>
-                                            </div>
-                                        </>
-                                    )}
+                            <form onSubmit={handleFilter} className="flex flex-wrap items-center gap-2">
+                                <div className="relative inline-flex items-center bg-white border border-gray-200 hover:border-gray-300 rounded-full px-3.5 py-1.5 shadow-2xs transition-all">
+                                    <span className="text-xs font-bold text-gray-900 mr-1.5">Tanggal:</span>
+                                    <input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="bg-transparent text-xs text-gray-600 font-medium focus:outline-none cursor-pointer"
+                                    />
+                                    <span className="text-xs text-gray-400 mx-1">s/d</span>
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="bg-transparent text-xs text-gray-600 font-medium focus:outline-none cursor-pointer"
+                                    />
                                 </div>
-                                <form onSubmit={handleFilter} className="flex flex-wrap items-center gap-2">
-                                    <div className="relative inline-flex items-center bg-white border border-gray-200 hover:border-gray-300 rounded-full px-3.5 py-1.5 shadow-2xs transition-all">
-                                        <span className="text-xs font-bold text-gray-900 mr-1.5">Tanggal:</span>
-                                        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-transparent text-xs text-gray-600 font-medium focus:outline-none cursor-pointer" />
-                                        <span className="text-xs text-gray-400 mx-1">s/d</span>
-                                        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-transparent text-xs text-gray-600 font-medium focus:outline-none cursor-pointer" />
-                                    </div>
-                                    <button type="submit" className="px-4 py-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold rounded-full shadow-2xs transition-colors">Terapkan</button>
-                                </form>
-                            </div>
-                        )}
+                                <button type="submit" className="px-4 py-1.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-semibold rounded-full shadow-2xs transition-colors">
+                                    Terapkan
+                                </button>
+                            </form>
+                        </div>
+
                     </div>
                 </div>
 
@@ -446,46 +484,12 @@ export default function ReportsIndex({ summary, commissionSummary = {}, ptCommis
                 {/* Single Unified Laporan Kunjungan Tab */}
                 {reportType === 'kunjungan' && (
                     <>
-                        {/* Pill-Style Sub Filter Toolbar inside Laporan Kunjungan */}
-                        <div className="flex flex-wrap items-center gap-2.5">
-                            {/* Pill 1: Periode Kunjungan */}
-                            <div className="relative inline-flex items-center bg-white border border-gray-200 hover:border-gray-300 rounded-full px-3.5 py-1.5 shadow-2xs transition-all cursor-pointer">
-                                <span className="text-xs font-bold text-gray-900 mr-1.5">Periode:</span>
-                                <select
-                                    value={visitPeriod}
-                                    onChange={(e) => setVisitPeriod(e.target.value)}
-                                    className="bg-transparent text-xs text-gray-600 font-medium focus:outline-none cursor-pointer pr-5 appearance-none capitalize"
-                                >
-                                    <option value="bulanan">Bulanan</option>
-                                    <option value="tahunan">Tahunan</option>
-                                </select>
-                                <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-3 pointer-events-none" />
-                            </div>
-
-                            {/* Pill 2: Pilih Tahun */}
-                            {visitPeriod === 'bulanan' && (
-                                <div className="relative inline-flex items-center bg-white border border-gray-200 hover:border-gray-300 rounded-full px-3.5 py-1.5 shadow-2xs transition-all cursor-pointer">
-                                    <span className="text-xs font-bold text-gray-900 mr-1.5">Tahun:</span>
-                                    <select
-                                        value={selectedYear}
-                                        onChange={(e) => handleYearChange(Number(e.target.value))}
-                                        className="bg-transparent text-xs text-gray-600 font-medium focus:outline-none cursor-pointer pr-5 appearance-none"
-                                    >
-                                        <option value={2025}>2025</option>
-                                        <option value={2026}>2026</option>
-                                        <option value={2027}>2027</option>
-                                    </select>
-                                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-3 pointer-events-none" />
-                                </div>
-                            )}
-                        </div>
-
                         {/* Stat Cards Grid (Identical Layout & Styling) */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div className="bg-white rounded-xl border border-gray-200 p-4">
                                 <div className="flex items-center justify-between">
                                     <span className="text-xs font-medium text-gray-500">
-                                        {visitPeriod === 'mingguan' ? 'Total Kunjungan Mingguan' : visitPeriod === 'bulanan' ? 'Total Kunjungan Bulanan' : 'Akumulasi Kunjungan Tahunan'}
+                                        Total Kunjungan
                                     </span>
                                     <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
                                         <QrCode className="w-4 h-4" />
@@ -496,7 +500,7 @@ export default function ReportsIndex({ summary, commissionSummary = {}, ptCommis
                                     <span className="text-xs font-normal text-gray-400 ml-1">Check-in</span>
                                 </p>
                                 <p className="text-[11px] text-gray-400 mt-1">
-                                    {visitPeriod === 'tahunan' ? 'Akumulasi seluruh tahun' : `Tahun ${selectedYear}`}
+                                    Periode {startDate} s/d {endDate}
                                 </p>
                             </div>
 
@@ -510,10 +514,10 @@ export default function ReportsIndex({ summary, commissionSummary = {}, ptCommis
                                 <p className="text-2xl font-semibold text-gray-900 mt-2">
                                     {activeVisitData.length}
                                     <span className="text-xs font-normal text-gray-400 ml-1">
-                                        {visitPeriod === 'mingguan' ? 'Minggu' : visitPeriod === 'bulanan' ? 'Bulan' : 'Tahun'}
+                                        Data
                                     </span>
                                 </p>
-                                <p className="text-[11px] text-gray-400 mt-1">Total unit periode</p>
+                                <p className="text-[11px] text-gray-400 mt-1">Unit tanggal terekam</p>
                             </div>
 
                             <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -526,10 +530,10 @@ export default function ReportsIndex({ summary, commissionSummary = {}, ptCommis
                                 <p className="text-2xl font-semibold text-gray-900 mt-2">
                                     {avgVisitCount}
                                     <span className="text-xs font-normal text-gray-400 ml-1">
-                                        Check-in / {visitPeriod === 'mingguan' ? 'minggu' : visitPeriod === 'bulanan' ? 'bulan' : 'tahun'}
+                                        Check-in / periode
                                     </span>
                                 </p>
-                                <p className="text-[11px] text-gray-400 mt-1">Estimasi rata-rata</p>
+                                <p className="text-[11px] text-gray-400 mt-1">Estimasi rata-rata per unit</p>
                             </div>
                         </div>
 
@@ -538,9 +542,9 @@ export default function ReportsIndex({ summary, commissionSummary = {}, ptCommis
                             <div className="flex items-center justify-between mb-4">
                                 <div>
                                     <h3 className="text-sm font-semibold text-gray-900">
-                                        Grafik Tren Kunjungan {visitPeriod === 'mingguan' ? `Mingguan (${selectedYear})` : visitPeriod === 'bulanan' ? `Bulanan (${selectedYear})` : 'Tahunan'}
+                                        Grafik Tren Kunjungan Member
                                     </h3>
-                                    <p className="text-xs text-gray-400">Visualisasi total check-in member berdasarkan periode terpilih</p>
+                                    <p className="text-xs text-gray-400">Visualisasi check-in ({startDate} s/d {endDate})</p>
                                 </div>
                             </div>
 
@@ -567,7 +571,7 @@ export default function ReportsIndex({ summary, commissionSummary = {}, ptCommis
                         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                             <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
                                 <h3 className="font-semibold text-sm text-gray-900">
-                                    Rincian Tabel Kunjungan {visitPeriod === 'bulanan' ? `Per Bulan (${selectedYear})` : 'Per Tahun'}
+                                    Rincian Tabel Kunjungan ({startDate} s/d {endDate})
                                 </h3>
                                 <span className="text-xs text-gray-500 font-medium">Total: {activeVisitData.length} Periode</span>
                             </div>
@@ -599,127 +603,23 @@ export default function ReportsIndex({ summary, commissionSummary = {}, ptCommis
 
                 {/* Laporan Komisi */}
                 {reportType === 'komisi' && (
-                    <>
-                        {/* Summary Cards — klik untuk lihat detail */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <button type="button" onClick={() => setCommissionDetail({ type: 'pt', title: 'Detail Paket PT', list: ptCommissionList })} className="bg-white rounded-xl border border-gray-200 p-4 text-left hover:border-blue-200 hover:shadow-sm transition-all cursor-pointer">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-medium text-gray-500">Komisi PT</span>
-                                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center"><Wallet className="w-4 h-4" /></div>
-                                </div>
-                                <p className="text-xl font-semibold text-gray-900 mt-2">{formatIDR(commissionSummary.pt_total || 0)}</p>
-                                <p className="text-[11px] text-gray-400 mt-1">{commissionSummary.pt_count || 0} paket • Rate {commissionSummary.pt_rate}{commissionSummary.pt_type === 'percent' ? '%' : ' flat'}</p>
-                                <p className="text-[10px] text-blue-600 mt-2 font-medium">Klik untuk detail →</p>
-                            </button>
-                            <button type="button" onClick={() => setCommissionDetail({ type: 'membership', title: 'Detail Closing Membership', list: memCommissionList })} className="bg-white rounded-xl border border-gray-200 p-4 text-left hover:border-amber-200 hover:shadow-sm transition-all cursor-pointer">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-medium text-gray-500">Komisi Membership</span>
-                                    <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center"><CreditCard className="w-4 h-4" /></div>
-                                </div>
-                                <p className="text-xl font-semibold text-gray-900 mt-2">{formatIDR(commissionSummary.membership_total || 0)}</p>
-                                <p className="text-[11px] text-gray-400 mt-1">{commissionSummary.membership_count || 0} closing • {commissionSummary.membership_type === 'percent' ? commissionSummary.membership_rate+'%' : formatIDR(commissionSummary.membership_rate)+' flat'}</p>
-                                <p className="text-[10px] text-amber-600 mt-2 font-medium">Klik untuk detail →</p>
-                            </button>
-                            <div className="bg-white rounded-xl border border-gray-200 p-4">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-medium text-gray-500">Total Komisi</span>
-                                    <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center"><DollarSign className="w-4 h-4" /></div>
-                                </div>
-                                <p className="text-xl font-semibold text-gray-900 mt-2">{formatIDR(commissionSummary.grand_total || 0)}</p>
-                                <p className="text-[11px] text-gray-400 mt-1">PT + Membership periode ini</p>
-                            </div>
-                        </div>
-
-                        {/* PT Commission by Trainer */}
-                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                            <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
-                                <h3 className="font-semibold text-sm text-gray-900">Komisi PT per Trainer</h3>
-                                <span className="text-xs text-gray-500 font-medium">{ptCommissionByTrainer.length} Trainer</span>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-gray-50 text-xs font-medium text-gray-500 border-b border-gray-200">
-                                        <tr>
-                                            <th className="px-5 py-3">Trainer</th>
-                                            <th className="px-5 py-3 text-center">Paket</th>
-                                            <th className="px-5 py-3 text-right">Omset PT</th>
-                                            <th className="px-5 py-3 text-right">Komisi ({commissionSummary.pt_type === 'percent' ? commissionSummary.pt_rate+'%' : 'flat'})</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {ptCommissionByTrainer.length === 0 ? (
-                                            <tr><td colSpan="4" className="px-5 py-8 text-center text-gray-400 text-xs">Tidak ada komisi PT di periode ini.</td></tr>
-                                        ) : ptCommissionByTrainer.map((row) => (
-                                            <tr key={row.trainer_id} onClick={() => setCommissionDetail({ type: 'pt', title: `Detail PT — ${row.trainer_name}`, list: ptCommissionList.filter(x => x.trainer_name === row.trainer_name) })} className="hover:bg-gray-50 transition-colors cursor-pointer">
-                                                <td className="px-5 py-3.5 font-medium text-gray-900">{row.trainer_name}</td>
-                                                <td className="px-5 py-3.5 text-center text-gray-600">{row.count}</td>
-                                                <td className="px-5 py-3.5 text-right text-gray-900">{formatIDR(row.omset)}</td>
-                                                <td className="px-5 py-3.5 text-right font-semibold text-blue-600">{formatIDR(row.komisi)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {/* Membership Commission by Sales */}
-                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                            <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
-                                <h3 className="font-semibold text-sm text-gray-900">Komisi Membership per Sales</h3>
-                                <span className="text-xs text-gray-500 font-medium">{memCommissionBySales.length} Sales</span>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-gray-50 text-xs font-medium text-gray-500 border-b border-gray-200">
-                                        <tr>
-                                            <th className="px-5 py-3">Sales</th>
-                                            <th className="px-5 py-3 text-center">Closing</th>
-                                            <th className="px-5 py-3 text-right">Omset Membership</th>
-                                            <th className="px-5 py-3 text-right">Komisi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {memCommissionBySales.length === 0 ? (
-                                            <tr><td colSpan="4" className="px-5 py-8 text-center text-gray-400 text-xs">Tidak ada komisi membership di periode ini.</td></tr>
-                                        ) : memCommissionBySales.map((row) => (
-                                            <tr key={row.user_id} onClick={() => setCommissionDetail({ type: 'membership', title: `Detail Closing — ${row.user_name}`, list: memCommissionList.filter(x => x.sales_name === row.user_name) })} className="hover:bg-gray-50 transition-colors cursor-pointer">
-                                                <td className="px-5 py-3.5 font-medium text-gray-900">{row.user_name}</td>
-                                                <td className="px-5 py-3.5 text-center text-gray-600">{row.count}</td>
-                                                <td className="px-5 py-3.5 text-right text-gray-900">{formatIDR(row.omset)}</td>
-                                                <td className="px-5 py-3.5 text-right font-semibold text-amber-600">{formatIDR(row.komisi)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {/* Detail Inline Card */}
-                        {commissionDetail && (
-                            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-gray-50">
-                                    <h3 className="text-sm font-bold text-gray-900">{commissionDetail.title}</h3>
-                                    <button onClick={() => setCommissionDetail(null)} className="text-xs font-medium text-gray-500 hover:text-gray-700">Tutup ✕</button>
-                                </div>
-                                <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
-                                    {commissionDetail.list.length === 0 ? (
-                                        <p className="p-8 text-center text-xs text-gray-400">Tidak ada data.</p>
-                                    ) : commissionDetail.list.map((r) => (
-                                        <div key={r.id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50">
-                                            <div>
-                                                <p className="text-xs font-medium text-gray-900">{commissionDetail.type === 'pt' ? `${r.member_name} — ${r.trainer_name}` : `${r.member_name} — ${r.sales_name}`}</p>
-                                                <p className="text-[11px] text-gray-400">{commissionDetail.type === 'pt' ? `${r.date} • ${r.total_sessions} sesi` : `${r.transaction_code} • ${r.date}`}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-xs font-medium text-gray-900">{formatIDR(commissionDetail.type === 'pt' ? r.price_paid : r.amount)}</p>
-                                                <p className={`text-[11px] font-semibold ${commissionDetail.type === 'pt' ? 'text-blue-600' : 'text-amber-600'}`}>Komisi {formatIDR(r.komisi)}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </>
+                    <CommissionReport
+                        commissionSummary={commissionSummary}
+                        ptCommissionByTrainer={ptCommissionByTrainer}
+                        ptCommissionList={ptCommissionList}
+                        memCommissionBySales={memCommissionBySales}
+                        memCommissionList={memCommissionList}
+                        allCommissionList={allCommissionList}
+                        startDate={startDate}
+                        endDate={endDate}
+                        setStartDate={setStartDate}
+                        setEndDate={setEndDate}
+                        handleFilter={handleFilter}
+                        handleQuickPreset={handleQuickPreset}
+                        handleExportCSV={handleExportCSV}
+                        handlePrint={handlePrint}
+                        formatIDR={formatIDR}
+                    />
                 )}
 
                 {/* Membership Transactions Table */}
@@ -799,6 +699,24 @@ export default function ReportsIndex({ summary, commissionSummary = {}, ptCommis
                             </table>
                         </div>
                         <Pagination paginator={sales} only={['sales']} preserveScroll preserveState />
+                    </div>
+                )}
+
+                {/* Printable Commission Voucher Signatures */}
+                {reportType === 'komisi' && (
+                    <div className="hidden print:grid grid-cols-3 gap-8 pt-10 text-center text-xs text-gray-700">
+                        <div className="border-t border-gray-400 pt-2">
+                            <p className="font-bold text-gray-900">Dibuat Oleh</p>
+                            <p className="mt-14 text-gray-500 font-medium">( Admin / Kasir )</p>
+                        </div>
+                        <div className="border-t border-gray-400 pt-2">
+                            <p className="font-bold text-gray-900">Diperiksa Oleh</p>
+                            <p className="mt-14 text-gray-500 font-medium">( Operational Manager )</p>
+                        </div>
+                        <div className="border-t border-gray-400 pt-2">
+                            <p className="font-bold text-gray-900">Disetujui Oleh</p>
+                            <p className="mt-14 text-gray-500 font-medium">( Gym Owner )</p>
+                        </div>
                     </div>
                 )}
             </div>
