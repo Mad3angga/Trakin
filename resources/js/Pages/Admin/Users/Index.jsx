@@ -9,12 +9,8 @@ import {
     Phone,
     Trash2,
     AlertTriangle,
-    Shield,
     Crown,
-    Briefcase,
     TrendingUp,
-    Dumbbell,
-    UserCheck,
     Search,
     Check,
     Users as UsersIcon,
@@ -90,9 +86,7 @@ export default function UsersIndex({ users = [], roles = [], branches = [] }) {
             category: 'management',
             categoryLabel: 'Manajemen',
             displayLabel: 'Owner',
-            icon: Crown,
             badgeClass: 'bg-purple-50 text-purple-700 border-purple-200',
-            bgIcon: 'text-purple-600',
             description: 'Pemilik Gym. Hak akses tertinggi mencakup manajemen staf, laporan finansial, analitik, dan pengaturan sistem.',
             permissions: ['Akses Penuh Semua Modul', 'Kelola Akun Staf & Role', 'Laporan Keuangan & Pengeluaran', 'AI Assistant & Dev Mode'],
         },
@@ -101,9 +95,7 @@ export default function UsersIndex({ users = [], roles = [], branches = [] }) {
             category: 'management',
             categoryLabel: 'Manajemen',
             displayLabel: 'Manager',
-            icon: Briefcase,
             badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-            bgIcon: 'text-indigo-600',
             description: 'Pengelola Operasional. Hak akses operasional lengkap untuk paket gym, inventori, laporan, dan kelas.',
             permissions: ['Laporan & Statistik Bisnis', 'Inventori Produk & POS', 'Kelola Paket Gym & PT', 'Manajemen Kelas & Trainer'],
         },
@@ -112,9 +104,7 @@ export default function UsersIndex({ users = [], roles = [], branches = [] }) {
             category: 'staff',
             categoryLabel: 'Staf Operasional',
             displayLabel: 'Staff (Sales)',
-            icon: TrendingUp,
             badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-            bgIcon: 'text-emerald-600',
             description: 'Staf Penjualan. Khusus penanganan pendaftaran member, penjualan paket & ritel POS, dan target penjualan.',
             permissions: ['Registrasi Member Baru', 'POS Kasir Ritel & Paket', 'Tracking Member & Penjualan', 'Jadwal Sesi PT'],
         },
@@ -123,9 +113,7 @@ export default function UsersIndex({ users = [], roles = [], branches = [] }) {
             category: 'staff',
             categoryLabel: 'Staf Operasional',
             displayLabel: 'Staff (Front Desk)',
-            icon: UserCheck,
             badgeClass: 'bg-blue-50 text-blue-700 border-blue-200',
-            bgIcon: 'text-blue-600',
             description: 'Staf Resepsionis / Kasir. Akses operasional meja depan, check-in kiosk kehadiran, dan kasir harian.',
             permissions: ['Kiosk QR Check-In Kehadiran', 'POS Kasir Ritel & Paket', 'Registrasi & Data Member', 'Kehadiran Harian'],
         },
@@ -134,9 +122,7 @@ export default function UsersIndex({ users = [], roles = [], branches = [] }) {
             category: 'staff',
             categoryLabel: 'Staf Operasional',
             displayLabel: 'Staff (Trainer)',
-            icon: Dumbbell,
             badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
-            bgIcon: 'text-amber-600',
             description: 'Staf Instruktur & Pelatih. Akses ke jadwal booking sesi PT personal, kelas latihan, dan log kehadiran.',
             permissions: ['Jadwal Kalender Sesi PT', 'Manajemen Kelas & Booking', 'Log Kehadiran Sesi', 'Profil Coach Pelatih'],
         },
@@ -148,9 +134,7 @@ export default function UsersIndex({ users = [], roles = [], branches = [] }) {
             category: 'staff',
             categoryLabel: 'Staf Operasional',
             displayLabel: `Staff (${roleName})`,
-            icon: Shield,
             badgeClass: 'bg-gray-100 text-gray-700 border-gray-200',
-            bgIcon: 'text-gray-600',
             description: 'Staf operasional gym.',
             permissions: ['Akses Operasional'],
         };
@@ -268,20 +252,20 @@ export default function UsersIndex({ users = [], roles = [], branches = [] }) {
                             <button
                                 type="button"
                                 onClick={() => { setActiveTab('management'); setSelectedRoleFilter(''); }}
-                                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                                     activeTab === 'management' ? 'bg-white text-purple-700 shadow-xs font-bold' : 'text-gray-500 hover:text-purple-700'
                                 }`}
                             >
-                                <Crown className="w-3.5 h-3.5" /> Manajemen ({counts.management})
+                                Manajemen ({counts.management})
                             </button>
                             <button
                                 type="button"
                                 onClick={() => { setActiveTab('staff'); setSelectedRoleFilter(''); }}
-                                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                                     activeTab === 'staff' ? 'bg-white text-emerald-700 shadow-xs font-bold' : 'text-gray-500 hover:text-emerald-700'
                                 }`}
                             >
-                                <TrendingUp className="w-3.5 h-3.5" /> Staf ({counts.staff})
+                                Staf ({counts.staff})
                             </button>
                         </div>
 
@@ -340,7 +324,6 @@ export default function UsersIndex({ users = [], roles = [], branches = [] }) {
                                     filteredUsers.map((u) => {
                                         const currentRoleName = u.roles?.[0]?.name || u.role_name || 'Front Desk';
                                         const meta = getRoleMeta(currentRoleName);
-                                        const RoleIcon = meta.icon;
                                         const isSelf = u.id === currentUserId;
 
                                         return (
@@ -389,8 +372,7 @@ export default function UsersIndex({ users = [], roles = [], branches = [] }) {
                                                 </td>
                                                 <td className="px-5 py-3.5">
                                                     <div className="flex flex-col gap-1 items-start">
-                                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${meta.badgeClass} shadow-2xs`}>
-                                                            <RoleIcon className="w-3.5 h-3.5" />
+                                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${meta.badgeClass} shadow-2xs`}>
                                                             <span>{meta.displayLabel}</span>
                                                         </span>
                                                         <span className="text-[10px] text-gray-400 ml-1">
@@ -531,11 +513,9 @@ export default function UsersIndex({ users = [], roles = [], branches = [] }) {
                                 {/* Interactive Role Description Preview */}
                                 {(() => {
                                     const meta = getRoleMeta(addForm.data.role);
-                                    const RoleIcon = meta.icon;
                                     return (
                                         <div className="p-3.5 bg-gray-50 rounded-2xl border border-gray-200/80 space-y-2 text-xs">
                                             <div className="flex items-center gap-2 font-bold text-gray-900">
-                                                <RoleIcon className={`w-4 h-4 ${meta.bgIcon}`} />
                                                 <span>{meta.displayLabel}</span>
                                                 <span className="text-[10px] text-gray-400 font-normal">({meta.categoryLabel})</span>
                                             </div>
@@ -614,11 +594,9 @@ export default function UsersIndex({ users = [], roles = [], branches = [] }) {
                                 {/* Interactive Role Description Preview */}
                                 {(() => {
                                     const meta = getRoleMeta(roleForm.data.role);
-                                    const RoleIcon = meta.icon;
                                     return (
                                         <div className="p-3.5 bg-gray-50 rounded-2xl border border-gray-200/80 space-y-2 text-xs">
                                             <div className="flex items-center gap-2 font-bold text-gray-900">
-                                                <RoleIcon className={`w-4 h-4 ${meta.bgIcon}`} />
                                                 <span>{meta.displayLabel}</span>
                                                 <span className="text-[10px] text-gray-400 font-normal">({meta.categoryLabel})</span>
                                             </div>
